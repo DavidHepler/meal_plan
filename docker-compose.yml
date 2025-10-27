@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5040:80"
+    depends_on:
+      - server
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+  server:
+    build: ./server
+    ports:
+      - "5050:3000"
+    environment:
+      - NODE_ENV=production
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+    volumes:
+      - ./database:/app/database
+      - meal_uploads:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  meal_uploads:

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Plan</title>
+    <link rel="stylesheet" href="css/kiosk.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weekly Meal Plan</h1>
+            <div class="controls">
+                <button id="viewToggle" class="btn">Today's Meal</button>
+                <button id="themeToggle" class="btn">🌙 Dark Mode</button>
+            </div>
+        </header>
+
+        <!-- Single Day View -->
+        <div id="singleDayView" class="view-container hidden">
+            <div class="single-day-card">
+                <div class="day-header">
+                    <h2 id="todayDayName">Today</h2>
+                    <p id="todayDate" class="date"></p>
+                </div>
+                <div id="todayMeal" class="meal-content">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7-Day View -->
+        <div id="weekView" class="view-container">
+            <div class="week-grid" id="weekGrid">
+                <!-- Days will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <footer>
+            <p class="last-updated">Last updated: <span id="lastUpdated">--</span></p>
+        </footer>
+    </div>
+
+    <script src="js/kiosk.js"></script>
+</body>
+</html>

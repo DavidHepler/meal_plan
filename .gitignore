@@ -1,0 +1,24 @@
+# Environment files
+.env
+
+# Database
+database/*.db
+database/*.db-journal
+
+# Logs
+*.log
+
+# Node modules
+node_modules/
+server/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads
+uploads/

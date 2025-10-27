@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Plan Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h1>🍽️ Meal Plan Admin</h1>
+            <form id="loginForm">
+                <input type="password" id="password" placeholder="Enter password" required>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <p id="loginError" class="error hidden">Invalid password</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden">
+        <nav class="navbar">
+            <h1>🍽️ Meal Plan Admin</h1>
+            <div class="nav-links">
+                <button class="nav-btn active" data-section="meal-plan">Meal Plan</button>
+                <button class="nav-btn" data-section="meals">Manage Meals</button>
+                <button class="nav-btn" data-section="history">History</button>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <main class="admin-content">
+            <!-- Meal Plan Section -->
+            <section id="meal-plan-section" class="section active">
+                <div class="section-header">
+                    <h2>2-Week Meal Plan</h2>
+                    <button id="savePlanBtn" class="btn btn-primary">Save Changes</button>
+                </div>
+                <div class="meal-plan-grid" id="mealPlanGrid">
+                    <!-- Meal plan will be populated by JavaScript -->
+                </div>
+                <p class="save-status" id="saveStatus"></p>
+            </section>
+
+            <!-- Manage Meals Section -->
+            <section id="meals-section" class="section">
+                <div class="section-header">
+                    <h2>Manage Meals</h2>
+                    <button id="addMealBtn" class="btn btn-primary">Add New Meal</button>
+                </div>
+                
+                <!-- Add/Edit Meal Form -->
+                <div id="mealFormContainer" class="hidden">
+                    <div class="form-container">
+                        <h3 id="formTitle">Add New Meal</h3>
+                        <form id="mealForm">
+                            <input type="hidden" id="mealId">
+                            
+                            <div class="form-group">
+                                <label for="mealName">Meal Name *</label>
+                                <input type="text" id="mealName" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="nationality">Nationality</label>
+                                    <input type="text" id="nationality" placeholder="e.g., Italian, German, Tex-Mex">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="mainComponent">Main Component</label>
+                                    <select id="mainComponent">
+                                        <option value="">Select...</option>
+                                        <option value="Fish">Fish</option>
+                                        <option value="Chicken">Chicken</option>
+                                        <option value="Beef">Beef</option>
+                                        <option value="Pork">Pork</option>
+                                        <option value="Vegetarian">Vegetarian</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="secondaryComponent">Base Component</label>
+                                    <select id="secondaryComponent">
+                                        <option value="">Select...</option>
+                                        <option value="Rice">Rice</option>
+                                        <option value="Pasta">Pasta</option>
+                                        <option value="Potato">Potato</option>
+                                        <option value="Other Grain">Other Grain</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="recipeLocation">Recipe Location (URL or description)</label>
+                                <input type="text" id="recipeLocation" placeholder="https://... or cookbook name">
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Meal</button>
+                                <button type="button" id="cancelMealBtn" class="btn btn-secondary">Cancel</button>
+                            </div>
+                            
+                            <p class="form-status" id="formStatus"></p>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Meals List -->
+                <div class="meals-list" id="mealsList">
+                    <!-- Meals will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="history-section" class="section">
+                <div class="section-header">
+                    <h2>Meal History (Last 365 Days)</h2>
+                    <button id="archiveBtn" class="btn btn-secondary">Archive Past Meals</button>
+                </div>
+                
+                <div class="history-list" id="historyList">
+                    <!-- History will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Meal Details Modal -->
+    <div id="mealDetailsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalMealName"></h2>
+            <div id="modalMealDetails"></div>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
