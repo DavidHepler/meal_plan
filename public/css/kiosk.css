@@ -199,6 +199,32 @@ header h1 {
     transition: all 0.3s;
 }
 
+.main-dish-name {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+.sides-list {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 10px;
+}
+
+[data-theme="dark"] .sides-list {
+    color: #999;
+}
+
+.sides-preview {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+[data-theme="dark"] .sides-preview {
+    color: #aaa;
+}
+
 .meal-content a:hover {
     color: var(--meal-link-hover);
     border-bottom-color: var(--meal-link-hover);

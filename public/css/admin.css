@@ -605,6 +605,76 @@ body {
     }
 }
 
+/* Side Dish Selector Styles */
+.side-dishes-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    min-height: 40px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.side-dish-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.side-dish-tag .remove-side-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+
+.side-dish-tag .remove-side-btn:hover {
+    transform: scale(1.2);
+}
+
+.side-dish-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.side-dish-select {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95em;
+}
+
+.side-dish-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.no-sides {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+.add-side-dish-btn {
+    margin-top: 10px;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 10px;

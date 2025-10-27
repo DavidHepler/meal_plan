@@ -25,7 +25,8 @@
             <h1>🍽️ Meal Plan Admin</h1>
             <div class="nav-links">
                 <button class="nav-btn active" data-section="meal-plan">Meal Plan</button>
-                <button class="nav-btn" data-section="meals">Manage Meals</button>
+                <button class="nav-btn" data-section="main-dishes">Main Dishes</button>
+                <button class="nav-btn" data-section="side-dishes">Side Dishes</button>
                 <button class="nav-btn" data-section="history">History</button>
                 <a href="index.html" class="btn btn-primary">View Dashboard</a>
                 <button id="logoutBtn" class="btn btn-secondary">Logout</button>
@@ -45,34 +46,34 @@
                 </div>
             </section>
 
-            <!-- Manage Meals Section -->
-            <section id="meals-section" class="section">
+            <!-- Main Dishes Section -->
+            <section id="main-dishes-section" class="section">
                 <div class="section-header">
-                    <h2>Manage Meals</h2>
-                    <button id="addMealBtn" class="btn btn-primary">Add New Meal</button>
+                    <h2>Manage Main Dishes</h2>
+                    <button id="addMainDishBtn" class="btn btn-primary">Add New Main Dish</button>
                 </div>
                 
-                <!-- Add/Edit Meal Form -->
-                <div id="mealFormContainer" class="hidden">
+                <!-- Add/Edit Main Dish Form -->
+                <div id="mainDishFormContainer" class="hidden">
                     <div class="form-container">
-                        <h3 id="formTitle">Add New Meal</h3>
-                        <form id="mealForm">
-                            <input type="hidden" id="mealId">
+                        <h3 id="mainDishFormTitle">Add New Main Dish</h3>
+                        <form id="mainDishForm">
+                            <input type="hidden" id="mainDishId">
                             
                             <div class="form-group">
-                                <label for="mealName">Meal Name *</label>
-                                <input type="text" id="mealName" required>
+                                <label for="mainDishName">Main Dish Name *</label>
+                                <input type="text" id="mainDishName" required>
                             </div>
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="nationality">Nationality</label>
-                                    <input type="text" id="nationality" placeholder="e.g., Italian, German, Tex-Mex">
+                                    <label for="mainDishNationality">Nationality</label>
+                                    <input type="text" id="mainDishNationality" placeholder="e.g., Italian, German, Tex-Mex">
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="mainComponent">Main Component</label>
-                                    <select id="mainComponent">
+                                    <label for="mainDishMainComponent">Main Component</label>
+                                    <select id="mainDishMainComponent">
                                         <option value="">Select...</option>
                                         <option value="Fish">Fish</option>
                                         <option value="Chicken">Chicken</option>
@@ -86,36 +87,92 @@
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="secondaryComponent">Base Component</label>
-                                    <select id="secondaryComponent">
+                                    <label for="mainDishBaseComponent">Base Component</label>
+                                    <select id="mainDishBaseComponent">
                                         <option value="">Select...</option>
                                         <option value="Rice">Rice</option>
                                         <option value="Pasta">Pasta</option>
                                         <option value="Potato">Potato</option>
                                         <option value="Other Grain">Other Grain</option>
+                                        <option value="None">None</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <label for="recipeLocation">Recipe Location (URL or description)</label>
-                                <input type="text" id="recipeLocation" placeholder="https://... or cookbook name">
+                                <label for="mainDishRecipeLocation">Recipe Location (URL or description)</label>
+                                <input type="text" id="mainDishRecipeLocation" placeholder="https://... or cookbook name">
                             </div>
                             
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary">Save Meal</button>
-                                <button type="button" id="cancelMealBtn" class="btn btn-secondary">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Main Dish</button>
+                                <button type="button" id="cancelMainDishBtn" class="btn btn-secondary">Cancel</button>
                             </div>
                             
-                            <p class="form-status" id="formStatus"></p>
+                            <p class="form-status" id="mainDishFormStatus"></p>
                         </form>
                     </div>
                 </div>
                 
-                <!-- Meals List -->
-                <div class="meals-list" id="mealsList">
-                    <!-- Meals will be populated by JavaScript -->
+                <!-- Main Dishes List -->
+                <div class="meals-list" id="mainDishesList">
+                    <!-- Main dishes will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Side Dishes Section -->
+            <section id="side-dishes-section" class="section">
+                <div class="section-header">
+                    <h2>Manage Side Dishes</h2>
+                    <button id="addSideDishBtn" class="btn btn-primary">Add New Side Dish</button>
+                </div>
+                
+                <!-- Add/Edit Side Dish Form -->
+                <div id="sideDishFormContainer" class="hidden">
+                    <div class="form-container">
+                        <h3 id="sideDishFormTitle">Add New Side Dish</h3>
+                        <form id="sideDishForm">
+                            <input type="hidden" id="sideDishId">
+                            
+                            <div class="form-group">
+                                <label for="sideDishName">Side Dish Name *</label>
+                                <input type="text" id="sideDishName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="sideDishType">Type</label>
+                                <select id="sideDishType">
+                                    <option value="">Select...</option>
+                                    <option value="Salad">Salad</option>
+                                    <option value="Vegetable">Vegetable</option>
+                                    <option value="Bread">Bread</option>
+                                    <option value="Grain">Grain</option>
+                                    <option value="Potato">Potato</option>
+                                    <option value="Fruit">Fruit</option>
+                                    <option value="Legume">Legume</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="sideDishNotes">Notes</label>
+                                <textarea id="sideDishNotes" rows="3" placeholder="Additional notes or description"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Save Side Dish</button>
+                                <button type="button" id="cancelSideDishBtn" class="btn btn-secondary">Cancel</button>
+                            </div>
+                            
+                            <p class="form-status" id="sideDishFormStatus"></p>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Side Dishes List -->
+                <div class="meals-list" id="sideDishesList">
+                    <!-- Side dishes will be populated by JavaScript -->
                 </div>
             </section>
 
@@ -130,15 +187,6 @@
                 </div>
             </section>
         </main>
-    </div>
-
-    <!-- Meal Details Modal -->
-    <div id="mealDetailsModal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalMealName"></h2>
-            <div id="modalMealDetails"></div>
-        </div>
     </div>
 
     <script src="js/admin.js"></script>

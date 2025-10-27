@@ -1,50 +1,28 @@
+
+// server.js for new meal plan structure (main_dishes, side_dishes, meal_plan)
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5050;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const DB_PATH = path.join(__dirname, 'database', 'meals.db');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-
-// Ensure directories exist
-if (!fs.existsSync(path.dirname(DB_PATH))) {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-}
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-// Configure multer for file uploads (for future use)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, UPLOADS_DIR);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'meal-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage: storage });
+const DB_PATH = path.join(__dirname, '../database/meals.db');
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Utility function to get date string in local timezone
+// Utility: get YYYY-MM-DD string
 function getDateString(date) {
-    // Use local date to avoid timezone issues
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
-// Initialize database
+// Initialize DB
 const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
         console.error('Error opening database:', err);
@@ -54,37 +32,36 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     }
 });
 
+// Initialize database schema and seed data
 function initializeDatabase() {
-    const schemaPath = path.join(__dirname, 'database', 'schema.sql');
-    const seedPath = path.join(__dirname, 'database', 'seed.sql');
-
-    // Check if database is already initialized
-    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='meals'", (err, row) => {
+    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const seedPath = path.join(__dirname, '../database/seed.sql');
+    
+    // Check if tables exist
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='main_dishes'", (err, row) => {
         if (err) {
             console.error('Error checking database:', err);
             return;
         }
-
+        
         if (!row) {
-            // Database not initialized, run schema and seed
-            console.log('Initializing database...');
-            
+            console.log('Initializing database schema...');
             const schema = fs.readFileSync(schemaPath, 'utf8');
             db.exec(schema, (err) => {
                 if (err) {
-                    console.error('Error executing schema:', err);
-                    return;
+                    console.error('Error creating schema:', err);
+                } else {
+                    console.log('Database schema created successfully');
+                    // Load seed data
+                    const seed = fs.readFileSync(seedPath, 'utf8');
+                    db.exec(seed, (err) => {
+                        if (err) {
+                            console.error('Error loading seed data:', err);
+                        } else {
+                            console.log('Seed data loaded successfully');
+                        }
+                    });
                 }
-                console.log('Schema created successfully');
-
-                const seed = fs.readFileSync(seedPath, 'utf8');
-                db.exec(seed, (err) => {
-                    if (err) {
-                        console.error('Error executing seed:', err);
-                        return;
-                    }
-                    console.log('Database seeded successfully');
-                });
             });
         } else {
             console.log('Database already initialized');
@@ -92,32 +69,7 @@ function initializeDatabase() {
     });
 }
 
-// Helper function to automatically archive past meals
-function autoArchivePastMeals() {
-    const query = `
-        INSERT INTO meal_history (date, meal_id, meal_name)
-        SELECT mp.date, m.id, m.name
-        FROM meal_plan mp
-        JOIN meals m ON mp.meal_id = m.id
-        WHERE mp.date < date('now')
-          AND NOT EXISTS (
-              SELECT 1 FROM meal_history h 
-              WHERE h.date = mp.date AND h.meal_id = mp.meal_id
-          )
-    `;
-    
-    db.run(query, [], function(err) {
-        if (err) {
-            console.error('Auto-archive error:', err.message);
-            return;
-        }
-        if (this.changes > 0) {
-            console.log(`Auto-archived ${this.changes} past meal(s) to history`);
-        }
-    });
-}
-
-// Authentication middleware
+// Auth middleware
 function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
@@ -126,7 +78,7 @@ function authenticate(req, res, next) {
     next();
 }
 
-// Authentication endpoint
+// Auth endpoint
 app.post('/api/auth', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
@@ -136,127 +88,167 @@ app.post('/api/auth', (req, res) => {
     }
 });
 
-// Get meal plan for a date range (default: 8 days starting from today)
-app.get('/api/meal-plan', (req, res) => {
-    const { startDate, endDate } = req.query;
-    
-    let query;
-    let params;
-    
-    if (startDate && endDate) {
-        query = `
-            SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
-                   m.main_component, m.secondary_component, m.recipe_location
-            FROM meal_plan mp
-            LEFT JOIN meals m ON mp.meal_id = m.id
-            WHERE mp.date BETWEEN ? AND ?
-            ORDER BY mp.date
-        `;
-        params = [startDate, endDate];
-    } else {
-        // Get 8 days starting from today (rolling calendar)
-        const today = new Date();
-        const endDay = new Date(today);
-        endDay.setDate(today.getDate() + 7); // 8 days total (today + 7 more days)
-        
-        query = `
-            SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
-                   m.main_component, m.secondary_component, m.recipe_location
-            FROM meal_plan mp
-            LEFT JOIN meals m ON mp.meal_id = m.id
-            WHERE mp.date BETWEEN ? AND ?
-            ORDER BY mp.date
-        `;
-        params = [getDateString(today), getDateString(endDay)];
-    }
-    
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+// MAIN DISHES CRUD
+app.get('/api/main-dishes', (req, res) => {
+    db.all('SELECT * FROM main_dishes ORDER BY name', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
-// Get today's meal
-app.get('/api/meal-plan/today', (req, res) => {
-    const todayDate = getDateString(new Date());
-    const query = `
-        SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
-               m.main_component, m.secondary_component, m.recipe_location
-        FROM meal_plan mp
-        LEFT JOIN meals m ON mp.meal_id = m.id
-        WHERE mp.date = ?
-    `;
-    
-    db.get(query, [todayDate], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(row || {});
+app.get('/api/main-dishes/:id', (req, res) => {
+    db.get('SELECT * FROM main_dishes WHERE id = ?', [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Main dish not found' });
+        res.json(row);
     });
 });
 
-// Get meal for a specific date (supports both future plans and past archive)
+app.post('/api/main-dishes', authenticate, (req, res) => {
+    const { name, nationality, main_component, base_component, recipe_location } = req.body;
+    db.run(
+        'INSERT INTO main_dishes (name, nationality, main_component, base_component, recipe_location) VALUES (?, ?, ?, ?, ?)',
+        [name, nationality, main_component, base_component, recipe_location],
+        function (err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ error: 'A main dish with this name already exists' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true, id: this.lastID });
+        }
+    );
+});
+
+app.put('/api/main-dishes/:id', authenticate, (req, res) => {
+    const { name, nationality, main_component, base_component, recipe_location } = req.body;
+    db.run(
+        'UPDATE main_dishes SET name=?, nationality=?, main_component=?, base_component=?, recipe_location=? WHERE id=?',
+        [name, nationality, main_component, base_component, recipe_location, req.params.id],
+        function (err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ error: 'A main dish with this name already exists' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+            if (this.changes === 0) return res.status(404).json({ error: 'Main dish not found' });
+            res.json({ success: true, changes: this.changes });
+        }
+    );
+});
+
+app.delete('/api/main-dishes/:id', authenticate, (req, res) => {
+    db.run('DELETE FROM main_dishes WHERE id = ?', [req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Main dish not found' });
+        res.json({ success: true, changes: this.changes });
+    });
+});
+
+// SIDE DISHES CRUD
+app.get('/api/side-dishes', (req, res) => {
+    db.all('SELECT * FROM side_dishes ORDER BY name', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.get('/api/side-dishes/:id', (req, res) => {
+    db.get('SELECT * FROM side_dishes WHERE id = ?', [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Side dish not found' });
+        res.json(row);
+    });
+});
+
+app.post('/api/side-dishes', authenticate, (req, res) => {
+    const { name, type, notes } = req.body;
+    db.run(
+        'INSERT INTO side_dishes (name, type, notes) VALUES (?, ?, ?)',
+        [name, type, notes],
+        function (err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ error: 'A side dish with this name already exists' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true, id: this.lastID });
+        }
+    );
+});
+
+app.put('/api/side-dishes/:id', authenticate, (req, res) => {
+    const { name, type, notes } = req.body;
+    db.run(
+        'UPDATE side_dishes SET name=?, type=?, notes=? WHERE id=?',
+        [name, type, notes, req.params.id],
+        function (err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ error: 'A side dish with this name already exists' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+            if (this.changes === 0) return res.status(404).json({ error: 'Side dish not found' });
+            res.json({ success: true, changes: this.changes });
+        }
+    );
+});
+
+app.delete('/api/side-dishes/:id', authenticate, (req, res) => {
+    db.run('DELETE FROM side_dishes WHERE id = ?', [req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Side dish not found' });
+        res.json({ success: true, changes: this.changes });
+    });
+});
+
+// MEAL PLAN
+// Get meal plan for a date range (default: 8 days from today)
+app.get('/api/meal-plan', (req, res) => {
+    const { startDate, endDate } = req.query;
+    let query, params;
+    if (startDate && endDate) {
+        query = `SELECT * FROM meal_plan WHERE date BETWEEN ? AND ? ORDER BY date`;
+        params = [startDate, endDate];
+    } else {
+        const today = new Date();
+        const endDay = new Date(today);
+        endDay.setDate(today.getDate() + 7);
+        query = `SELECT * FROM meal_plan WHERE date BETWEEN ? AND ? ORDER BY date`;
+        params = [getDateString(today), getDateString(endDay)];
+    }
+    db.all(query, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        // Attach main/side dish details
+        const promises = rows.map(row => enrichMealPlanRow(row));
+        Promise.all(promises).then(fullRows => res.json(fullRows));
+    });
+});
+
+// Get meal plan for a specific date
 app.get('/api/meal-plan/date/:date', (req, res) => {
     const { date } = req.params;
-    
-    // First, try to get from meal_plan
-    const planQuery = `
-        SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
-               m.main_component, m.secondary_component, m.recipe_location
-        FROM meal_plan mp
-        LEFT JOIN meals m ON mp.meal_id = m.id
-        WHERE mp.date = ?
-    `;
-    
-    db.get(planQuery, [date], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        
-        // If found in meal_plan, return it
-        if (row && row.meal_id) {
-            res.json(row);
-            return;
-        }
-        
-        // If not in meal_plan, check meal_history for archived meals
-        const historyQuery = `
-            SELECT h.id, h.date, h.meal_id, h.meal_name as name, 
-                   m.nationality, m.main_component, m.secondary_component, 
-                   m.recipe_location
-            FROM meal_history h
-            LEFT JOIN meals m ON h.meal_id = m.id
-            WHERE h.date = ?
-            LIMIT 1
-        `;
-        
-        db.get(historyQuery, [date], (err, historyRow) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            
-            // Return the history row if found, or empty object if not
-            res.json(historyRow || { date: date });
-        });
+    db.get('SELECT * FROM meal_plan WHERE date = ?', [date], async (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.json({ date });
+        const fullRow = await enrichMealPlanRow(row);
+        res.json(fullRow);
     });
 });
 
-// Get 2-week meal plan for admin editing
+// Get 2-week meal plan for admin
 app.get('/api/meal-plan/admin', authenticate, (req, res) => {
-    // Get Monday of current week and next 13 days (2 weeks)
+    // Get Monday of current week and next 13 days
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to go back to Monday
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(today);
     monday.setDate(today.getDate() + daysToMonday);
     const mondayStr = getDateString(monday);
-    
     const query = `
         WITH RECURSIVE dates(date) AS (
             SELECT ?
@@ -265,66 +257,39 @@ app.get('/api/meal-plan/admin', authenticate, (req, res) => {
             FROM dates
             WHERE date < date(?, '+13 days')
         )
-        SELECT d.date, mp.id as plan_id, mp.meal_id, m.name, m.nationality,
-               m.main_component, m.secondary_component, m.recipe_location
+        SELECT d.date, mp.id as plan_id, mp.main_dish_id, mp.side_dish_ids
         FROM dates d
         LEFT JOIN meal_plan mp ON d.date = mp.date
-        LEFT JOIN meals m ON mp.meal_id = m.id
         ORDER BY d.date
     `;
-    
-    db.all(query, [mondayStr, mondayStr], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
+    db.all(query, [mondayStr, mondayStr], async (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        // Attach main/side dish details
+        const promises = rows.map(row => enrichMealPlanRow(row));
+        const fullRows = await Promise.all(promises);
+        res.json(fullRows);
     });
 });
 
 // Update meal plan for a specific date
 app.put('/api/meal-plan/:date', authenticate, (req, res) => {
     const { date } = req.params;
-    const { meal_id } = req.body;
-    
-    // First check if entry exists
+    const { main_dish_id, side_dish_ids } = req.body;
     db.get('SELECT id FROM meal_plan WHERE date = ?', [date], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        
+        if (err) return res.status(500).json({ error: err.message });
         if (row) {
-            // Update existing entry
-            db.run(
-                'UPDATE meal_plan SET meal_id = ? WHERE date = ?',
-                [meal_id, date],
-                function(err) {
-                    if (err) {
-                        res.status(500).json({ error: err.message });
-                        return;
-                    }
-                    
-                    // Auto-archive past meals after updating
-                    autoArchivePastMeals();
-                    
+            db.run('UPDATE meal_plan SET main_dish_id=?, side_dish_ids=? WHERE date=?',
+                [main_dish_id, side_dish_ids, date],
+                function (err) {
+                    if (err) return res.status(500).json({ error: err.message });
                     res.json({ success: true, changes: this.changes });
                 }
             );
         } else {
-            // Insert new entry
-            db.run(
-                'INSERT INTO meal_plan (date, meal_id) VALUES (?, ?)',
-                [date, meal_id],
-                function(err) {
-                    if (err) {
-                        res.status(500).json({ error: err.message });
-                        return;
-                    }
-                    
-                    // Auto-archive past meals after inserting
-                    autoArchivePastMeals();
-                    
+            db.run('INSERT INTO meal_plan (date, main_dish_id, side_dish_ids) VALUES (?, ?, ?)',
+                [date, main_dish_id, side_dish_ids],
+                function (err) {
+                    if (err) return res.status(500).json({ error: err.message });
                     res.json({ success: true, id: this.lastID });
                 }
             );
@@ -332,128 +297,32 @@ app.put('/api/meal-plan/:date', authenticate, (req, res) => {
     });
 });
 
-// Get all meals
-app.get('/api/meals', (req, res) => {
-    const query = 'SELECT * FROM meals ORDER BY name';
-    
-    db.all(query, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
-    });
-});
-
-// Get a single meal by ID
-app.get('/api/meals/:id', (req, res) => {
-    const { id } = req.params;
-    
-    db.get('SELECT * FROM meals WHERE id = ?', [id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        if (!row) {
-            res.status(404).json({ error: 'Meal not found' });
-            return;
-        }
-        res.json(row);
-    });
-});
-
-// Create a new meal
-app.post('/api/meals', authenticate, (req, res) => {
-    const { name, nationality, main_component, secondary_component, recipe_location } = req.body;
-    
-    const query = `
-        INSERT INTO meals (name, nationality, main_component, secondary_component, recipe_location)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-    
-    db.run(
-        query,
-        [name, nationality, main_component, secondary_component, recipe_location],
-        function(err) {
-            if (err) {
-                if (err.message.includes('UNIQUE constraint failed')) {
-                    res.status(400).json({ error: 'A meal with this name already exists' });
-                } else {
-                    res.status(500).json({ error: err.message });
-                }
-                return;
+// Helper: enrich meal plan row with main/side dish details
+function enrichMealPlanRow(row) {
+    return new Promise((resolve) => {
+        if (!row) return resolve(row);
+        db.get('SELECT * FROM main_dishes WHERE id = ?', [row.main_dish_id], (err, mainDish) => {
+            if (err) return resolve(row);
+            let sideDishIds = [];
+            if (row.side_dish_ids) {
+                sideDishIds = row.side_dish_ids.split(',').map(id => parseInt(id.trim())).filter(Boolean);
             }
-            res.json({ success: true, id: this.lastID });
-        }
-    );
-});
-
-// Update a meal
-app.put('/api/meals/:id', authenticate, (req, res) => {
-    const { id } = req.params;
-    const { name, nationality, main_component, secondary_component, recipe_location } = req.body;
-    
-    const query = `
-        UPDATE meals 
-        SET name = ?, nationality = ?, main_component = ?, 
-            secondary_component = ?, recipe_location = ?
-        WHERE id = ?
-    `;
-    
-    db.run(
-        query,
-        [name, nationality, main_component, secondary_component, recipe_location, id],
-        function(err) {
-            if (err) {
-                if (err.message.includes('UNIQUE constraint failed')) {
-                    res.status(400).json({ error: 'A meal with this name already exists' });
-                } else {
-                    res.status(500).json({ error: err.message });
-                }
-                return;
+            if (sideDishIds.length === 0) {
+                resolve({ ...row, main_dish: mainDish, side_dishes: [] });
+            } else {
+                db.all(`SELECT * FROM side_dishes WHERE id IN (${sideDishIds.map(() => '?').join(',')})`, sideDishIds, (err, sideDishes) => {
+                    resolve({ ...row, main_dish: mainDish, side_dishes: sideDishes || [] });
+                });
             }
-            if (this.changes === 0) {
-                res.status(404).json({ error: 'Meal not found' });
-                return;
-            }
-            res.json({ success: true, changes: this.changes });
-        }
-    );
-});
-
-// Delete a meal
-app.delete('/api/meals/:id', authenticate, (req, res) => {
-    const { id } = req.params;
-    
-    db.run('DELETE FROM meals WHERE id = ?', [id], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        if (this.changes === 0) {
-            res.status(404).json({ error: 'Meal not found' });
-            return;
-        }
-        res.json({ success: true, changes: this.changes });
+        });
     });
-});
+}
 
-// Get meal history (last year)
+// MEAL HISTORY (last year)
 app.get('/api/history', authenticate, (req, res) => {
-    const query = `
-        SELECT h.id, h.date, h.meal_id, h.meal_name, h.comment, h.created_at,
-               m.nationality, m.main_component, m.secondary_component
-        FROM meal_history h
-        LEFT JOIN meals m ON h.meal_id = m.id
-        WHERE h.date >= date('now', '-1 year')
-        ORDER BY h.date DESC
-    `;
-    
+    const query = `SELECT * FROM meal_history WHERE date >= date('now', '-1 year') ORDER BY date DESC`;
     db.all(query, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+        if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
@@ -462,137 +331,21 @@ app.get('/api/history', authenticate, (req, res) => {
 app.post('/api/history/:id/comment', authenticate, (req, res) => {
     const { id } = req.params;
     const { comment } = req.body;
-    
-    db.run(
-        'UPDATE meal_history SET comment = ? WHERE id = ?',
-        [comment, id],
-        function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            if (this.changes === 0) {
-                res.status(404).json({ error: 'History entry not found' });
-                return;
-            }
-            res.json({ success: true, changes: this.changes });
-        }
-    );
-});
-
-// Archive past meal plans to history (cleanup job)
-app.post('/api/history/archive', authenticate, (req, res) => {
-    const query = `
-        INSERT INTO meal_history (date, meal_id, meal_name)
-        SELECT mp.date, m.id, m.name
-        FROM meal_plan mp
-        JOIN meals m ON mp.meal_id = m.id
-        WHERE mp.date < date('now')
-          AND NOT EXISTS (
-              SELECT 1 FROM meal_history h 
-              WHERE h.date = mp.date AND h.meal_id = mp.meal_id
-          )
-    `;
-    
-    db.run(query, [], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ success: true, archived: this.changes });
+    db.run('UPDATE meal_history SET comment = ? WHERE id = ?', [comment, id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'History entry not found' });
+        res.json({ success: true, changes: this.changes });
     });
 });
 
-// Cleanup old history (older than 1 year)
-app.post('/api/history/cleanup', authenticate, (req, res) => {
-    db.run(
-        "DELETE FROM meal_history WHERE date < date('now', '-1 year')",
-        [],
-        function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            res.json({ success: true, deleted: this.changes });
-        }
-    );
-});
-
-// Upload meal image (for future use)
-app.post('/api/meals/:id/image', authenticate, upload.single('image'), (req, res) => {
-    const { id } = req.params;
-    
-    if (!req.file) {
-        res.status(400).json({ error: 'No file uploaded' });
-        return;
-    }
-    
-    const imagePath = `/uploads/${req.file.filename}`;
-    
-    db.run(
-        'UPDATE meals SET image_path = ? WHERE id = ?',
-        [imagePath, id],
-        function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            if (this.changes === 0) {
-                // Delete uploaded file if meal not found
-                fs.unlinkSync(req.file.path);
-                res.status(404).json({ error: 'Meal not found' });
-                return;
-            }
-            res.json({ success: true, image_path: imagePath });
-        }
-    );
-});
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, closing database...');
-    db.close((err) => {
-        if (err) {
-            console.error(err.message);
-        }
-        console.log('Database connection closed.');
-        process.exit(0);
-    });
-});
-
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    
-    // Run auto-archive on startup (after a brief delay to ensure DB is ready)
-    setTimeout(() => {
-        console.log('Running initial auto-archive check...');
-        autoArchivePastMeals();
-    }, 2000);
-    
-    // Schedule daily auto-archive at 2 AM
-    const scheduleNextArchive = () => {
-        const now = new Date();
-        const tomorrow2AM = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate() + 1,
-            2, 0, 0, 0
-        );
-        const timeUntil2AM = tomorrow2AM - now;
-        
-        setTimeout(() => {
-            console.log('Running scheduled auto-archive...');
-            autoArchivePastMeals();
-            scheduleNextArchive(); // Schedule next day
-        }, timeUntil2AM);
-        
-        console.log(`Next auto-archive scheduled for: ${tomorrow2AM.toISOString()}`);
-    };
-    
-    scheduleNextArchive();
 });
