@@ -5,7 +5,7 @@ A web application for managing and displaying weekly meal plans with an admin in
 ## Features
 
 ### Main Kiosk View
-- **7-Day View**: Display meals for the entire week (Monday - Sunday)
+- **8-Day Rolling View**: Display meals for 8 days starting from today (previous days automatically roll off)
 - **Single Day View**: Show only today's meal in a larger format
 - **Dark/Light Mode**: Toggle between light and dark themes
 - **Clickable Recipes**: Meal names link to recipes when available
@@ -69,7 +69,8 @@ Each meal includes:
 ## Usage
 
 ### Main Kiosk Page
-- The page automatically displays the current week's meal plan
+- The page automatically displays an 8-day rolling calendar starting from today
+- Past days automatically roll off as new days begin
 - Click "Today's Meal" to switch to single-day view
 - Click "🌙 Dark Mode" to toggle dark theme
 - Click on meal names (if they have recipe links) to view recipes

@@ -136,7 +136,7 @@ app.post('/api/auth', (req, res) => {
     }
 });
 
-// Get meal plan for a date range (default: current week Monday-Sunday)
+// Get meal plan for a date range (default: 8 days starting from today)
 app.get('/api/meal-plan', (req, res) => {
     const { startDate, endDate } = req.query;
     
@@ -154,14 +154,10 @@ app.get('/api/meal-plan', (req, res) => {
         `;
         params = [startDate, endDate];
     } else {
-        // Get current week (Monday to Sunday) using local date
+        // Get 8 days starting from today (rolling calendar)
         const today = new Date();
-        const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        const monday = new Date(today);
-        monday.setDate(today.getDate() + daysToMonday);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
+        const endDay = new Date(today);
+        endDay.setDate(today.getDate() + 7); // 8 days total (today + 7 more days)
         
         query = `
             SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
@@ -171,7 +167,7 @@ app.get('/api/meal-plan', (req, res) => {
             WHERE mp.date BETWEEN ? AND ?
             ORDER BY mp.date
         `;
-        params = [getDateString(monday), getDateString(sunday)];
+        params = [getDateString(today), getDateString(endDay)];
     }
     
     db.all(query, params, (err, rows) => {
