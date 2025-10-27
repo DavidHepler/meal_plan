@@ -3,7 +3,15 @@
 INSERT INTO meals (name, nationality, main_component, secondary_component, recipe_location) VALUES
 ('Spaghetti Carbonara', 'Italian', 'Pork', 'Pasta', ''),
 -- ('Spaghetti Carbonara', 'Italian', 'Pork', 'Pasta', ''),
-('Flammkuchen', 'French', 'Beef', '', '');
+('Taco Soup', 'Tex-Mex', 'Ground Beef', 'Beans', ''),
+('Fish Tacos', 'Mexican', 'Fish', 'Tortillas', ''),
+('Airfryer Fajitas', 'Tex-Mex', 'Pork', 'Tortillas', ''),
+('Thai Fried Rice', 'Thai', 'Chicken', 'Rice', 'Davids Recipe Notbook'),
+('Paprika Haenschen', '', 'Polenta', 'Rice', ''),
+('Hamberger Helper', 'American', 'Ground Beef', 'Pasta', ''),
+('Schinkennudeln', 'German', 'Ham', 'Pasta', ''),
+('Flammkuchen', 'French', 'Ground Beef', '', '');
+
 
 -- Sample meal plan for the current week (starting from next Monday)
 -- This will be populated with some initial data
