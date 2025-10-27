@@ -199,6 +199,54 @@ app.get('/api/meal-plan/today', (req, res) => {
     });
 });
 
+// Get meal for a specific date (supports both future plans and past archive)
+app.get('/api/meal-plan/date/:date', (req, res) => {
+    const { date } = req.params;
+    
+    // First, try to get from meal_plan
+    const planQuery = `
+        SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
+               m.main_component, m.secondary_component, m.recipe_location
+        FROM meal_plan mp
+        LEFT JOIN meals m ON mp.meal_id = m.id
+        WHERE mp.date = ?
+    `;
+    
+    db.get(planQuery, [date], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        
+        // If found in meal_plan, return it
+        if (row && row.meal_id) {
+            res.json(row);
+            return;
+        }
+        
+        // If not in meal_plan, check meal_history for archived meals
+        const historyQuery = `
+            SELECT h.id, h.date, h.meal_id, h.meal_name as name, 
+                   m.nationality, m.main_component, m.secondary_component, 
+                   m.recipe_location
+            FROM meal_history h
+            LEFT JOIN meals m ON h.meal_id = m.id
+            WHERE h.date = ?
+            LIMIT 1
+        `;
+        
+        db.get(historyQuery, [date], (err, historyRow) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            
+            // Return the history row if found, or empty object if not
+            res.json(historyRow || { date: date });
+        });
+    });
+});
+
 // Get 2-week meal plan for admin editing
 app.get('/api/meal-plan/admin', authenticate, (req, res) => {
     // Get Monday of current week and next 13 days (2 weeks)

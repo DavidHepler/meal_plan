@@ -5,6 +5,7 @@ const API_BASE = window.location.hostname === 'localhost'
 
 let currentView = 'week'; // 'week' or 'day'
 let currentTheme = localStorage.getItem('theme') || 'light';
+let currentDayOffset = 0; // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,6 +29,8 @@ function initializeTheme() {
 function setupEventListeners() {
     document.getElementById('viewToggle').addEventListener('click', toggleView);
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    document.getElementById('prevDay').addEventListener('click', () => navigateDay(-1));
+    document.getElementById('nextDay').addEventListener('click', () => navigateDay(1));
 }
 
 // Toggle between week and day view
@@ -38,6 +41,7 @@ function toggleView() {
     
     if (currentView === 'week') {
         currentView = 'day';
+        currentDayOffset = 0; // Reset to today when switching to day view
         weekView.classList.add('hidden');
         singleDayView.classList.remove('hidden');
         viewToggleBtn.textContent = 'Week View';
@@ -128,34 +132,52 @@ function displayWeekMeals(meals) {
 // Load today's meal
 async function loadTodayMeal() {
     try {
-        const response = await fetch(`${API_BASE}/meal-plan/today`);
-        if (!response.ok) throw new Error('Failed to fetch today\'s meal');
+        const targetDate = getTargetDate(currentDayOffset);
+        const response = await fetch(`${API_BASE}/meal-plan/date/${targetDate}`);
+        if (!response.ok) throw new Error('Failed to fetch meal');
         
         const meal = await response.json();
-        displayTodayMeal(meal);
+        displayTodayMeal(meal, targetDate);
         updateLastUpdated();
     } catch (error) {
-        console.error('Error loading today\'s meal:', error);
-        displayError('todayMeal', 'Failed to load today\'s meal');
+        console.error('Error loading meal:', error);
+        displayError('todayMeal', 'Failed to load meal');
     }
 }
 
+// Navigate to previous or next day
+function navigateDay(direction) {
+    currentDayOffset += direction;
+    loadTodayMeal();
+}
+
 // Display today's meal
-function displayTodayMeal(meal) {
+function displayTodayMeal(meal, date) {
     const todayDayName = document.getElementById('todayDayName');
     const todayDate = document.getElementById('todayDate');
     const todayMeal = document.getElementById('todayMeal');
     
-    const now = new Date();
+    const targetDate = new Date(date + 'T00:00:00');
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
-    todayDayName.textContent = daysOfWeek[now.getDay()];
-    todayDate.textContent = formatDate(getTodayDateString());
+    // Determine if it's today, yesterday, tomorrow, or a specific date
+    const today = getTodayDateString();
+    let dayLabel = daysOfWeek[targetDate.getDay()];
+    if (date === today) {
+        dayLabel = 'Today';
+    } else if (currentDayOffset === -1) {
+        dayLabel = 'Yesterday';
+    } else if (currentDayOffset === 1) {
+        dayLabel = 'Tomorrow';
+    }
+    
+    todayDayName.textContent = dayLabel;
+    todayDate.textContent = formatDate(date);
     
     if (meal && meal.name) {
         todayMeal.innerHTML = createMealLink(meal);
     } else {
-        todayMeal.innerHTML = '<span class="no-meal">No meal planned for today</span>';
+        todayMeal.innerHTML = '<span class="no-meal">No meal planned for this day</span>';
     }
 }
 
@@ -192,6 +214,16 @@ function getTodayDateString() {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Get target date based on offset from today
+function getTargetDate(offset) {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 

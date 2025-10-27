@@ -20,8 +20,12 @@
         <div id="singleDayView" class="view-container hidden">
             <div class="single-day-card">
                 <div class="day-header">
-                    <h2 id="todayDayName">Today</h2>
-                    <p id="todayDate" class="date"></p>
+                    <button id="prevDay" class="nav-arrow" title="Previous day">&lt;</button>
+                    <div class="day-info">
+                        <h2 id="todayDayName">Today</h2>
+                        <p id="todayDate" class="date"></p>
+                    </div>
+                    <button id="nextDay" class="nav-arrow" title="Next day">&gt;</button>
                 </div>
                 <div id="todayMeal" class="meal-content">
                     <p class="loading">Loading...</p>
