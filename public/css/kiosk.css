@@ -147,6 +147,29 @@ header h1 {
     margin-bottom: 10px;
 }
 
+.return-today-btn {
+    display: none;
+    margin-top: 10px;
+    padding: 8px 20px;
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+    border-radius: 20px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.return-today-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.return-today-btn:active {
+    transform: translateY(0);
+}
+
 .date {
     font-size: 1.2em;
     color: #888;

@@ -31,6 +31,7 @@ function setupEventListeners() {
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     document.getElementById('prevDay').addEventListener('click', () => navigateDay(-1));
     document.getElementById('nextDay').addEventListener('click', () => navigateDay(1));
+    document.getElementById('returnToday').addEventListener('click', returnToToday);
 }
 
 // Toggle between week and day view
@@ -149,6 +150,24 @@ async function loadTodayMeal() {
 function navigateDay(direction) {
     currentDayOffset += direction;
     loadTodayMeal();
+    updateReturnTodayButton();
+}
+
+// Return to today
+function returnToToday() {
+    currentDayOffset = 0;
+    loadTodayMeal();
+    updateReturnTodayButton();
+}
+
+// Update the visibility of the "Return to Today" button
+function updateReturnTodayButton() {
+    const returnBtn = document.getElementById('returnToday');
+    if (currentDayOffset === 0) {
+        returnBtn.style.display = 'none';
+    } else {
+        returnBtn.style.display = 'inline-block';
+    }
 }
 
 // Display today's meal
@@ -179,6 +198,9 @@ function displayTodayMeal(meal, date) {
     } else {
         todayMeal.innerHTML = '<span class="no-meal">No meal planned for this day</span>';
     }
+    
+    // Update the return to today button visibility
+    updateReturnTodayButton();
 }
 
 // Create meal link or plain text
