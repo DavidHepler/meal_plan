@@ -10,7 +10,9 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
     ports:
       - "5050:3000"
     environment:
