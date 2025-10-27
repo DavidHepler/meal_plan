@@ -122,8 +122,13 @@
             <section id="history-section" class="section">
                 <div class="section-header">
                     <h2>Meal History (Last 365 Days)</h2>
-                    <button id="archiveBtn" class="btn btn-secondary">Archive Past Meals</button>
+                    <div>
+                        <span class="auto-archive-indicator">✓ Auto-archiving enabled</span>
+                        <button id="archiveBtn" class="btn btn-secondary">Archive Past Meals Now</button>
+                    </div>
                 </div>
+                
+                <p class="info-text">Past meals are automatically archived daily at 2 AM and whenever you save changes to the meal plan.</p>
                 
                 <div class="history-list" id="historyList">
                     <!-- History will be populated by JavaScript -->

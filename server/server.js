@@ -92,6 +92,31 @@ function initializeDatabase() {
     });
 }
 
+// Helper function to automatically archive past meals
+function autoArchivePastMeals() {
+    const query = `
+        INSERT INTO meal_history (date, meal_id, meal_name)
+        SELECT mp.date, m.id, m.name
+        FROM meal_plan mp
+        JOIN meals m ON mp.meal_id = m.id
+        WHERE mp.date < date('now')
+          AND NOT EXISTS (
+              SELECT 1 FROM meal_history h 
+              WHERE h.date = mp.date AND h.meal_id = mp.meal_id
+          )
+    `;
+    
+    db.run(query, [], function(err) {
+        if (err) {
+            console.error('Auto-archive error:', err.message);
+            return;
+        }
+        if (this.changes > 0) {
+            console.log(`Auto-archived ${this.changes} past meal(s) to history`);
+        }
+    });
+}
+
 // Authentication middleware
 function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -235,6 +260,10 @@ app.put('/api/meal-plan/:date', authenticate, (req, res) => {
                         res.status(500).json({ error: err.message });
                         return;
                     }
+                    
+                    // Auto-archive past meals after updating
+                    autoArchivePastMeals();
+                    
                     res.json({ success: true, changes: this.changes });
                 }
             );
@@ -248,6 +277,10 @@ app.put('/api/meal-plan/:date', authenticate, (req, res) => {
                         res.status(500).json({ error: err.message });
                         return;
                     }
+                    
+                    // Auto-archive past meals after inserting
+                    autoArchivePastMeals();
+                    
                     res.json({ success: true, id: this.lastID });
                 }
             );
@@ -490,4 +523,32 @@ process.on('SIGTERM', () => {
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    
+    // Run auto-archive on startup (after a brief delay to ensure DB is ready)
+    setTimeout(() => {
+        console.log('Running initial auto-archive check...');
+        autoArchivePastMeals();
+    }, 2000);
+    
+    // Schedule daily auto-archive at 2 AM
+    const scheduleNextArchive = () => {
+        const now = new Date();
+        const tomorrow2AM = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + 1,
+            2, 0, 0, 0
+        );
+        const timeUntil2AM = tomorrow2AM - now;
+        
+        setTimeout(() => {
+            console.log('Running scheduled auto-archive...');
+            autoArchivePastMeals();
+            scheduleNextArchive(); // Schedule next day
+        }, timeUntil2AM);
+        
+        console.log(`Next auto-archive scheduled for: ${tomorrow2AM.toISOString()}`);
+    };
+    
+    scheduleNextArchive();
 });

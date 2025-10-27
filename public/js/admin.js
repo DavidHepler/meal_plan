@@ -550,7 +550,7 @@ async function saveComment(historyId, comment) {
 
 // Archive past meals
 async function archivePastMeals() {
-    if (!confirm('This will archive all past meal plans to history. Continue?')) {
+    if (!confirm('This will manually archive all past meal plans to history. Note: Past meals are already being archived automatically. Continue?')) {
         return;
     }
     
@@ -563,7 +563,11 @@ async function archivePastMeals() {
         if (!response.ok) throw new Error('Failed to archive meals');
         
         const result = await response.json();
-        alert(`Archived ${result.archived} meal(s) to history`);
+        if (result.archived > 0) {
+            alert(`Archived ${result.archived} meal(s) to history`);
+        } else {
+            alert('No new meals to archive. All past meals are already in history.');
+        }
         loadHistory();
     } catch (error) {
         console.error('Error archiving meals:', error);
