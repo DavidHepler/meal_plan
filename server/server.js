@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5050;
+const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const DB_PATH = path.join(__dirname, 'database/meals.db');
 
@@ -338,8 +338,7 @@ app.post('/api/history/:id/comment', authenticate, (req, res) => {
     });
 });
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, '../public')));
+// Note: Static files are served by nginx container, not by this API server
 
 // Health check
 app.get('/api/health', (req, res) => {
