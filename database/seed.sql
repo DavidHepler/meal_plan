@@ -11,7 +11,7 @@ INSERT INTO meals (name, nationality, main_component, secondary_component, recip
 ('Hamberger Helper', 'American', 'Ground Beef', 'Pasta', ''),
 ('Schinkennudeln', 'German', 'Ham', 'Pasta', ''),
 ('Käsespätzle', 'German', 'Cheese', 'Pasta', ''),
-('Flammkuchen', 'French', 'Ground Beef', '', '');
+('BBQ Flammkuchen', 'French-American Fusion', 'Ground Beef', '', '');
 
 
 -- Sample meal plan for the current week (starting from next Monday)
