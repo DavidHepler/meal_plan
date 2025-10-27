@@ -250,9 +250,8 @@ async function saveMealPlan() {
     const saveStatus = document.getElementById('saveStatus');
     const savePlanBtn = document.getElementById('savePlanBtn');
     
-    // Disable button and show loading state
+    // Disable button and show saving status
     savePlanBtn.disabled = true;
-    savePlanBtn.textContent = 'Saving...';
     saveStatus.textContent = 'Saving changes...';
     saveStatus.className = 'save-status';
     
@@ -277,25 +276,24 @@ async function saveMealPlan() {
     
     try {
         await Promise.all(updates);
-        saveStatus.textContent = '✓ Meal plan saved successfully!';
+        saveStatus.textContent = 'Meal plan saved successfully!';
         saveStatus.className = 'save-status success';
         
         // Re-enable button
         savePlanBtn.disabled = false;
-        savePlanBtn.textContent = 'Save Changes';
         
+        // Keep the message visible longer
         setTimeout(() => {
             saveStatus.textContent = '';
             saveStatus.className = 'save-status';
         }, 5000);
     } catch (error) {
         console.error('Error saving meal plan:', error);
-        saveStatus.textContent = '✗ Error saving meal plan';
+        saveStatus.textContent = 'Error saving meal plan';
         saveStatus.className = 'save-status error';
         
         // Re-enable button
         savePlanBtn.disabled = false;
-        savePlanBtn.textContent = 'Save Changes';
     }
 }
 

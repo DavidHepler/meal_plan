@@ -211,7 +211,7 @@ body {
 
 .plan-day-header {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 15px;
 }
@@ -290,12 +290,13 @@ body {
 
 .save-status {
     text-align: center;
-    margin-top: 20px;
+    margin-bottom: 20px;
     padding: 12px 20px;
     border-radius: 8px;
     font-weight: 500;
-    font-size: 1.1em;
+    font-size: 1em;
     transition: all 0.3s ease;
+    min-height: 20px;
 }
 
 .save-status.success {
