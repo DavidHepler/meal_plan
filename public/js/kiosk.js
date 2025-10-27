@@ -11,6 +11,7 @@ let currentDayOffset = 0; // 0 = today, -1 = yesterday, 1 = tomorrow, etc.
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     setupEventListeners();
+    setupModalListeners();
     loadData();
     
     // Auto-refresh every 5 minutes
@@ -32,6 +33,29 @@ function setupEventListeners() {
     document.getElementById('prevDay').addEventListener('click', () => navigateDay(-1));
     document.getElementById('nextDay').addEventListener('click', () => navigateDay(1));
     document.getElementById('returnToday').addEventListener('click', returnToToday);
+}
+
+// Setup modal event listeners
+function setupModalListeners() {
+    const modal = document.getElementById('mealModal');
+    const closeBtn = document.querySelector('.modal-close');
+    
+    // Close modal when clicking the X
+    closeBtn.addEventListener('click', closeModal);
+    
+    // Close modal when clicking outside the modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.classList.contains('show')) {
+            closeModal();
+        }
+    });
 }
 
 // Toggle between week and day view
@@ -121,10 +145,21 @@ function displayWeekMeals(meals) {
         dayCard.innerHTML = `
             <div class="day-name">${dayName}</div>
             <div class="day-date">${formatDate(meal.date)}</div>
-            <div class="meal-name">
-                ${meal.name ? createMealLink(meal) : '<span class="no-meal">No meal planned</span>'}
+            <div class="meal-name ${meal.name ? 'clickable' : ''}">
+                ${meal.name ? createMealDisplay(meal) : '<span class="no-meal">No meal planned</span>'}
             </div>
         `;
+        
+        // Add click handler to show modal for meals
+        if (meal.name) {
+            const mealNameDiv = dayCard.querySelector('.meal-name');
+            mealNameDiv.addEventListener('click', (e) => {
+                // Don't open modal if clicking a link
+                if (e.target.tagName !== 'A') {
+                    showMealModal(meal);
+                }
+            });
+        }
         
         weekGrid.appendChild(dayCard);
     });
@@ -194,9 +229,19 @@ function displayTodayMeal(meal, date) {
     todayDate.textContent = formatDate(date);
     
     if (meal && meal.name) {
-        todayMeal.innerHTML = createMealLink(meal);
+        todayMeal.innerHTML = createMealDisplay(meal);
+        todayMeal.className = 'meal-content clickable';
+        
+        // Add click handler to show modal
+        todayMeal.addEventListener('click', (e) => {
+            // Don't open modal if clicking a link
+            if (e.target.tagName !== 'A') {
+                showMealModal(meal);
+            }
+        });
     } else {
         todayMeal.innerHTML = '<span class="no-meal">No meal planned for this day</span>';
+        todayMeal.className = 'meal-content';
     }
     
     // Update the return to today button visibility
@@ -211,6 +256,81 @@ function createMealLink(meal) {
         return `<a href="${escapeHtml(meal.recipe_location)}" target="_blank" rel="noopener noreferrer">${escapeHtml(meal.name)}</a>`;
     }
     return escapeHtml(meal.name);
+}
+
+// Create meal display (just the name, clickable for modal)
+function createMealDisplay(meal) {
+    if (!meal || !meal.name) return '';
+    return `<span>${escapeHtml(meal.name)}</span>`;
+}
+
+// Show meal details modal
+function showMealModal(meal) {
+    const modal = document.getElementById('mealModal');
+    const modalMealName = document.getElementById('modalMealName');
+    const modalMealDate = document.getElementById('modalMealDate');
+    const modalNationality = document.getElementById('modalNationality');
+    const modalMainComponent = document.getElementById('modalMainComponent');
+    const modalSecondaryComponent = document.getElementById('modalSecondaryComponent');
+    const modalRecipeLocation = document.getElementById('modalRecipeLocation');
+    const modalRecipeRow = document.getElementById('modalRecipeRow');
+    
+    // Populate modal with meal data
+    modalMealName.textContent = meal.name || 'Unknown Meal';
+    modalMealDate.textContent = formatDate(meal.date);
+    
+    // Set nationality
+    if (meal.nationality) {
+        modalNationality.textContent = meal.nationality;
+        modalNationality.classList.remove('empty');
+    } else {
+        modalNationality.textContent = 'Not specified';
+        modalNationality.classList.add('empty');
+    }
+    
+    // Set main component
+    if (meal.main_component) {
+        modalMainComponent.textContent = meal.main_component;
+        modalMainComponent.classList.remove('empty');
+    } else {
+        modalMainComponent.textContent = 'Not specified';
+        modalMainComponent.classList.add('empty');
+    }
+    
+    // Set secondary component
+    if (meal.secondary_component) {
+        modalSecondaryComponent.textContent = meal.secondary_component;
+        modalSecondaryComponent.classList.remove('empty');
+    } else {
+        modalSecondaryComponent.textContent = 'Not specified';
+        modalSecondaryComponent.classList.add('empty');
+    }
+    
+    // Set recipe location
+    if (meal.recipe_location) {
+        if (isValidUrl(meal.recipe_location)) {
+            modalRecipeLocation.innerHTML = `<a href="${escapeHtml(meal.recipe_location)}" target="_blank" rel="noopener noreferrer">${escapeHtml(meal.recipe_location)}</a>`;
+        } else {
+            modalRecipeLocation.textContent = meal.recipe_location;
+        }
+        modalRecipeLocation.classList.remove('empty');
+        modalRecipeRow.style.display = 'flex';
+    } else {
+        modalRecipeLocation.textContent = 'Not specified';
+        modalRecipeLocation.classList.add('empty');
+        modalRecipeRow.style.display = 'flex';
+    }
+    
+    // Show the modal
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+// Close meal details modal
+function closeModal() {
+    const modal = document.getElementById('mealModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = ''; // Restore scrolling
 }
 
 // Check if string is a valid URL
