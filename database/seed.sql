@@ -10,6 +10,7 @@ INSERT INTO meals (name, nationality, main_component, secondary_component, recip
 ('Paprika Haenschen', '', 'Polenta', 'Rice', ''),
 ('Hamberger Helper', 'American', 'Ground Beef', 'Pasta', ''),
 ('Schinkennudeln', 'German', 'Ham', 'Pasta', ''),
+('Käsespätzle', 'German', 'Cheese', 'Pasta', ''),
 ('Flammkuchen', 'French', 'Ground Beef', '', '');
 
 
