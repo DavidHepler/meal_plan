@@ -167,7 +167,7 @@ header h1 {
 .day-name {
     font-size: 1.5em;
     font-weight: 600;
-    color: var(--header-bg);
+    color: #66BB6A;
     margin-bottom: 8px;
 }
 
