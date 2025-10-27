@@ -18,9 +18,10 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - TZ=America/Chicago
     volumes:
-      - ./database:/app/database
+      - meal_data:/app/database
       - meal_uploads:/app/uploads
     restart: unless-stopped
 
 volumes:
+  meal_data:
   meal_uploads:

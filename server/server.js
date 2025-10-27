@@ -9,7 +9,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 5050;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const DB_PATH = path.join(__dirname, '../database/meals.db');
+const DB_PATH = path.join(__dirname, 'database/meals.db');
 
 app.use(cors());
 app.use(express.json());
@@ -34,8 +34,8 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 // Initialize database schema and seed data
 function initializeDatabase() {
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
-    const seedPath = path.join(__dirname, '../database/seed.sql');
+    const schemaPath = path.join(__dirname, 'database/schema.sql');
+    const seedPath = path.join(__dirname, 'database/seed.sql');
     
     // Check if tables exist
     db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='main_dishes'", (err, row) => {
