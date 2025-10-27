@@ -190,32 +190,6 @@ body {
     font-size: 2em;
 }
 
-.section-header > div {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.auto-archive-indicator {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border-radius: 20px;
-    font-size: 0.9em;
-    font-weight: 500;
-    border: 1px solid #c8e6c9;
-}
-
-.info-text {
-    color: #666;
-    font-size: 0.95em;
-    margin: -15px 0 20px 0;
-    font-style: italic;
-}
-
 /* Meal Plan Grid */
 .meal-plan-grid {
     display: grid;

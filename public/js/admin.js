@@ -40,9 +40,6 @@ function setupEventListeners() {
     document.getElementById('addMealBtn').addEventListener('click', showMealForm);
     document.getElementById('cancelMealBtn').addEventListener('click', hideMealForm);
     document.getElementById('mealForm').addEventListener('submit', handleMealSubmit);
-    
-    // History
-    document.getElementById('archiveBtn').addEventListener('click', archivePastMeals);
 }
 
 // Handle login
@@ -545,33 +542,6 @@ async function saveComment(historyId, comment) {
     } catch (error) {
         console.error('Error saving comment:', error);
         alert('Failed to save comment');
-    }
-}
-
-// Archive past meals
-async function archivePastMeals() {
-    if (!confirm('This will manually archive all past meal plans to history. Note: Past meals are already being archived automatically. Continue?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/history/archive`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        
-        if (!response.ok) throw new Error('Failed to archive meals');
-        
-        const result = await response.json();
-        if (result.archived > 0) {
-            alert(`Archived ${result.archived} meal(s) to history`);
-        } else {
-            alert('No new meals to archive. All past meals are already in history.');
-        }
-        loadHistory();
-    } catch (error) {
-        console.error('Error archiving meals:', error);
-        alert('Failed to archive meals');
     }
 }
 
