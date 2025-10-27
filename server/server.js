@@ -35,6 +35,15 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// Utility function to get date string in local timezone
+function getDateString(date) {
+    // Use local date to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Initialize database
 const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
@@ -120,17 +129,24 @@ app.get('/api/meal-plan', (req, res) => {
         `;
         params = [startDate, endDate];
     } else {
-        // Get current week (Monday to Sunday)
+        // Get current week (Monday to Sunday) using local date
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + daysToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        
         query = `
             SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
                    m.main_component, m.secondary_component, m.recipe_location
             FROM meal_plan mp
             LEFT JOIN meals m ON mp.meal_id = m.id
-            WHERE mp.date >= date('now', 'weekday 1', '-7 days')
-              AND mp.date <= date('now', 'weekday 1', '-1 day')
+            WHERE mp.date BETWEEN ? AND ?
             ORDER BY mp.date
         `;
-        params = [];
+        params = [getDateString(monday), getDateString(sunday)];
     }
     
     db.all(query, params, (err, rows) => {
@@ -144,15 +160,16 @@ app.get('/api/meal-plan', (req, res) => {
 
 // Get today's meal
 app.get('/api/meal-plan/today', (req, res) => {
+    const todayDate = getDateString(new Date());
     const query = `
         SELECT mp.id, mp.date, mp.meal_id, m.name, m.nationality, 
                m.main_component, m.secondary_component, m.recipe_location
         FROM meal_plan mp
         LEFT JOIN meals m ON mp.meal_id = m.id
-        WHERE mp.date = date('now')
+        WHERE mp.date = ?
     `;
     
-    db.get(query, [], (err, row) => {
+    db.get(query, [todayDate], (err, row) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -163,14 +180,21 @@ app.get('/api/meal-plan/today', (req, res) => {
 
 // Get 2-week meal plan for admin editing
 app.get('/api/meal-plan/admin', authenticate, (req, res) => {
-    // Get today and next 13 days (2 weeks)
+    // Get Monday of current week and next 13 days (2 weeks)
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to go back to Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + daysToMonday);
+    const mondayStr = getDateString(monday);
+    
     const query = `
         WITH RECURSIVE dates(date) AS (
-            SELECT date('now', 'weekday 1')
+            SELECT ?
             UNION ALL
             SELECT date(date, '+1 day')
             FROM dates
-            WHERE date < date('now', 'weekday 1', '+13 days')
+            WHERE date < date(?, '+13 days')
         )
         SELECT d.date, mp.id as plan_id, mp.meal_id, m.name, m.nationality,
                m.main_component, m.secondary_component, m.recipe_location
@@ -180,7 +204,7 @@ app.get('/api/meal-plan/admin', authenticate, (req, res) => {
         ORDER BY d.date
     `;
     
-    db.all(query, [], (err, rows) => {
+    db.all(query, [mondayStr, mondayStr], (err, rows) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;

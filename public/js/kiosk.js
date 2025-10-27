@@ -102,7 +102,7 @@ function displayWeekMeals(meals) {
         return;
     }
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     meals.forEach(meal => {
@@ -150,7 +150,7 @@ function displayTodayMeal(meal) {
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     todayDayName.textContent = daysOfWeek[now.getDay()];
-    todayDate.textContent = formatDate(new Date().toISOString().split('T')[0]);
+    todayDate.textContent = formatDate(getTodayDateString());
     
     if (meal && meal.name) {
         todayMeal.innerHTML = createMealLink(meal);
@@ -184,6 +184,15 @@ function formatDate(dateString) {
     const date = new Date(dateString + 'T00:00:00');
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     return date.toLocaleDateString('en-US', options);
+}
+
+// Get today's date string in YYYY-MM-DD format using local timezone
+function getTodayDateString() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Update last updated timestamp

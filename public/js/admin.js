@@ -155,7 +155,7 @@ function displayMealPlan() {
     const mealPlanGrid = document.getElementById('mealPlanGrid');
     mealPlanGrid.innerHTML = '';
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     mealPlanData.forEach(day => {
@@ -576,6 +576,15 @@ function formatDate(dateString) {
     const date = new Date(dateString + 'T00:00:00');
     const options = { month: 'short', day: 'numeric', year: 'numeric' };
     return date.toLocaleDateString('en-US', options);
+}
+
+// Get today's date string in YYYY-MM-DD format using local timezone
+function getTodayDateString() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Check if string is a valid URL
