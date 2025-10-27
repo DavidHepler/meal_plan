@@ -102,6 +102,34 @@ header h1 {
     box-shadow: 0 8px 16px var(--card-shadow);
     text-align: center;
     min-height: 300px;
+    position: relative;
+}
+
+.return-today-btn {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 24px;
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+    border-radius: 20px;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px var(--card-shadow);
+    font-weight: 500;
+}
+
+.return-today-btn:hover {
+    background-color: #45a049;
+    transform: translateX(-50%) translateY(-2px);
+}
+
+.return-today-btn:active {
+    transform: translateX(-50%) translateY(0);
 }
 
 .day-header {
@@ -110,6 +138,7 @@ header h1 {
     justify-content: center;
     gap: 30px;
     margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .day-info {
@@ -145,29 +174,6 @@ header h1 {
     font-size: 2.5em;
     color: #66BB6A;
     margin-bottom: 10px;
-}
-
-.return-today-btn {
-    display: none;
-    margin-top: 10px;
-    padding: 8px 20px;
-    background-color: var(--header-bg);
-    color: var(--header-text);
-    border: none;
-    border-radius: 20px;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 2px 4px var(--card-shadow);
-}
-
-.return-today-btn:hover {
-    background-color: #45a049;
-    transform: translateY(-2px);
-}
-
-.return-today-btn:active {
-    transform: translateY(0);
 }
 
 .date {
