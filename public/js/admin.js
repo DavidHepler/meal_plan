@@ -153,11 +153,8 @@ function displayMealPlan() {
     mealPlanGrid.innerHTML = '';
     
     const today = getTodayDateString();
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     mealPlanData.forEach(day => {
-        const date = new Date(day.date + 'T00:00:00');
-        const dayName = daysOfWeek[date.getDay()];
         const isToday = day.date === today;
         
         const dayCard = document.createElement('div');
@@ -166,8 +163,7 @@ function displayMealPlan() {
         
         dayCard.innerHTML = `
             <div class="plan-day-header">
-                <span class="plan-day-name">${dayName}</span>
-                <span class="plan-day-date">${formatDate(day.date)}</span>
+                <span class="plan-day-name">${formatDateWithDay(day.date)}</span>
             </div>
             <div class="meal-selector">
                 <input type="text" 
@@ -252,7 +248,12 @@ function showMealDropdown(input, dropdown) {
 // Save meal plan
 async function saveMealPlan() {
     const saveStatus = document.getElementById('saveStatus');
-    saveStatus.textContent = 'Saving...';
+    const savePlanBtn = document.getElementById('savePlanBtn');
+    
+    // Disable button and show loading state
+    savePlanBtn.disabled = true;
+    savePlanBtn.textContent = 'Saving...';
+    saveStatus.textContent = 'Saving changes...';
     saveStatus.className = 'save-status';
     
     const inputs = document.querySelectorAll('.meal-search-input');
@@ -276,16 +277,25 @@ async function saveMealPlan() {
     
     try {
         await Promise.all(updates);
-        saveStatus.textContent = 'Saved successfully!';
+        saveStatus.textContent = '✓ Meal plan saved successfully!';
         saveStatus.className = 'save-status success';
+        
+        // Re-enable button
+        savePlanBtn.disabled = false;
+        savePlanBtn.textContent = 'Save Changes';
         
         setTimeout(() => {
             saveStatus.textContent = '';
-        }, 3000);
+            saveStatus.className = 'save-status';
+        }, 5000);
     } catch (error) {
         console.error('Error saving meal plan:', error);
-        saveStatus.textContent = 'Error saving meal plan';
+        saveStatus.textContent = '✗ Error saving meal plan';
         saveStatus.className = 'save-status error';
+        
+        // Re-enable button
+        savePlanBtn.disabled = false;
+        savePlanBtn.textContent = 'Save Changes';
     }
 }
 
@@ -543,6 +553,18 @@ async function saveComment(historyId, comment) {
         console.error('Error saving comment:', error);
         alert('Failed to save comment');
     }
+}
+
+// Format date with day of week (e.g., "Monday, Oct. 27, 2025")
+function formatDateWithDay(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = daysOfWeek[date.getDay()];
+    
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    const dateFormatted = date.toLocaleDateString('en-US', options);
+    
+    return `${dayName}, ${dateFormatted}`;
 }
 
 // Format date

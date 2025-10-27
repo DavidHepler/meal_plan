@@ -211,7 +211,7 @@ body {
 
 .plan-day-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 15px;
 }
@@ -291,15 +291,21 @@ body {
 .save-status {
     text-align: center;
     margin-top: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
     font-weight: 500;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
 }
 
 .save-status.success {
-    color: var(--primary-color);
+    color: #fff;
+    background-color: var(--primary-color);
 }
 
 .save-status.error {
-    color: var(--danger-color);
+    color: #fff;
+    background-color: var(--danger-color);
 }
 
 /* Form Container */
