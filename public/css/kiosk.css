@@ -230,6 +230,25 @@ footer {
     font-size: 0.9em;
 }
 
+.admin-link {
+    margin-top: 10px;
+    font-size: 0.85em;
+}
+
+.admin-link a {
+    color: var(--meal-link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s;
+    opacity: 0.7;
+}
+
+.admin-link a:hover {
+    color: var(--meal-link-hover);
+    border-bottom-color: var(--meal-link-hover);
+    opacity: 1;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     header {
