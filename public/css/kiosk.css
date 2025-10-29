@@ -6,7 +6,7 @@
     --text-color: #555;
     --card-bg: #ffffff;
     --card-shadow: rgba(0, 0, 0, 0.1);
-    --header-bg: #001f3f;
+    --header-bg: #2c5aa0;
     --header-text: #ffffff;
     --border-color: #e0e0e0;
     --meal-link: #2196F3;
@@ -18,7 +18,7 @@
     --text-color: #e0e0e0;
     --card-bg: #2d2d2d;
     --card-shadow: rgba(0, 0, 0, 0.3);
-    --header-bg: #001529;
+    --header-bg: #1e4a8a;
     --header-text: #ffffff;
     --border-color: #404040;
     --meal-link: #64B5F6;
@@ -46,7 +46,7 @@ body {
 
 /* Header */
 header {
-    background: linear-gradient(135deg, var(--header-bg) 0%, #001529 100%);
+    background: linear-gradient(135deg, var(--header-bg) 0%, #1e4a8a 100%);
     color: var(--header-text);
     padding: 30px;
     border-radius: 15px;
