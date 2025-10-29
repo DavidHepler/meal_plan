@@ -19,7 +19,8 @@ INSERT INTO main_dishes (name, nationality, main_component, base_component, reci
 ('Creamy Garlic Parmesan Chicken', 'Italian-American', 'Chicken', 'None', ''),
 ('Fischfilet À la Bordelaise', 'French', 'Fish', 'None', ''),
 ('Fleischpflanzerl', 'German', 'Beef', 'None', ''),
-('Gefüllte Paprika', 'German', 'Beef', 'None', '');
+('Gefüllte Paprika', 'German', 'Beef', 'None', ''),
+('Broccoli-Cheese-Soup', 'American', 'Vegetarian', 'None', 'Paprika');
 
 -- Sample side dishes
 INSERT INTO side_dishes (name, type, notes) VALUES
@@ -32,7 +33,11 @@ INSERT INTO side_dishes (name, type, notes) VALUES
 ('Fruit Salad', 'Fruit', ''),
 ('Corn on the Cob', 'Vegetable', ''),
 ('Steamed Broccoli', 'Vegetable', ''),
-('Beans', 'Legume', '');
+('Beans', 'Legume', ''),
+('Baguette', 'Bread', ''),
+('Grillbrot', 'Bread', ''),
+('Focaccia', 'Bread', ''),
+('Ciabatta', 'Bread', '');
 
 -- Sample meal plan for the current week (starting from next Monday)
 -- Example: main_dish_id = 1, side_dish_ids = '1,2' (comma-separated)
