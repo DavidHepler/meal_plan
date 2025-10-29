@@ -179,7 +179,7 @@ body {
 .section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 30px;
     flex-wrap: wrap;
     gap: 15px;
@@ -188,14 +188,17 @@ body {
 .section-header h2 {
     color: var(--primary-color);
     font-size: 2em;
+    flex: 1;
 }
 
 /* Sticky Save Button */
 #savePlanBtn {
+    position: -webkit-sticky; /* Safari */
     position: sticky;
-    top: 20px;
+    top: 90px; /* Below navbar */
     z-index: 100;
     box-shadow: 0 4px 12px var(--shadow);
+    align-self: flex-start;
 }
 
 #savePlanBtn.sticky-active {
@@ -599,6 +602,7 @@ body {
 
     #savePlanBtn {
         width: 100%;
+        position: -webkit-sticky;
         position: sticky;
         top: 10px;
     }
