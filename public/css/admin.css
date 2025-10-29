@@ -190,6 +190,29 @@ body {
     font-size: 2em;
 }
 
+/* Sticky Save Button */
+#savePlanBtn {
+    position: sticky;
+    top: 20px;
+    z-index: 100;
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+#savePlanBtn.sticky-active {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0.8;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Meal Plan Grid */
 .meal-plan-grid {
     display: grid;
@@ -572,6 +595,12 @@ body {
     .section-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    #savePlanBtn {
+        width: 100%;
+        position: sticky;
+        top: 10px;
     }
 
     .form-row {
