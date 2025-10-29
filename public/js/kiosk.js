@@ -104,7 +104,14 @@ function displayWeekMeals(meals) {
         dayCard.className = `day-card ${isToday ? 'today' : ''}`;
         
         let mealContent = '';
-        if (meal.main_dish) {
+        
+        // Check if eating out
+        if (meal.eating_out) {
+            mealContent = `<div class="eating-out-indicator">🍽️ Eating Out</div>`;
+            if (meal.eating_out_location) {
+                mealContent += `<div class="eating-out-location">${escapeHtml(meal.eating_out_location)}</div>`;
+            }
+        } else if (meal.main_dish) {
             mealContent = `<div class="meal-name clickable">${escapeHtml(meal.main_dish.name)}`;
             if (meal.side_dishes && meal.side_dishes.length > 0) {
                 mealContent += `<div class="sides-preview">${meal.side_dishes.map(s => escapeHtml(s.name)).join(', ')}</div>`;
@@ -120,7 +127,7 @@ function displayWeekMeals(meals) {
             ${mealContent}
         `;
         
-        if (meal.main_dish) {
+        if (meal.main_dish && !meal.eating_out) {
             const mealNameDiv = dayCard.querySelector('.meal-name');
             mealNameDiv.addEventListener('click', (e) => {
                 if (e.target.tagName !== 'A') showMealModal(meal);
@@ -176,7 +183,15 @@ function displayTodayMeal(meal, date) {
     todayDayName.textContent = dayLabel;
     todayDate.textContent = formatDate(date);
     
-    if (meal && meal.main_dish) {
+    // Check if eating out
+    if (meal && meal.eating_out) {
+        let content = `<div class="eating-out-indicator large">🍽️ Eating Out</div>`;
+        if (meal.eating_out_location) {
+            content += `<div class="eating-out-location large">${escapeHtml(meal.eating_out_location)}</div>`;
+        }
+        todayMeal.innerHTML = content;
+        todayMeal.className = 'meal-content';
+    } else if (meal && meal.main_dish) {
         let content = `<div class="main-dish-name">${escapeHtml(meal.main_dish.name)}</div>`;
         if (meal.side_dishes && meal.side_dishes.length > 0) {
             content += `<div class="sides-list"><strong>Sides:</strong> ${meal.side_dishes.map(s => escapeHtml(s.name)).join(', ')}</div>`;

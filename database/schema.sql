@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS meal_plan (
     date DATE NOT NULL UNIQUE,
     main_dish_id INTEGER,
     side_dish_ids TEXT, -- Comma-separated list of side dish IDs
+    eating_out BOOLEAN DEFAULT 0, -- 1 if eating out/away, 0 otherwise
+    eating_out_location TEXT, -- Restaurant name or "Friend's house", etc.
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (main_dish_id) REFERENCES main_dishes(id) ON DELETE SET NULL

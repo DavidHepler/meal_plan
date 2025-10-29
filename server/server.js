@@ -257,7 +257,7 @@ app.get('/api/meal-plan/admin', authenticate, (req, res) => {
             FROM dates
             WHERE date < date(?, '+13 days')
         )
-        SELECT d.date, mp.id as plan_id, mp.main_dish_id, mp.side_dish_ids
+        SELECT d.date, mp.id as plan_id, mp.main_dish_id, mp.side_dish_ids, mp.eating_out, mp.eating_out_location
         FROM dates d
         LEFT JOIN meal_plan mp ON d.date = mp.date
         ORDER BY d.date
@@ -274,20 +274,20 @@ app.get('/api/meal-plan/admin', authenticate, (req, res) => {
 // Update meal plan for a specific date
 app.put('/api/meal-plan/:date', authenticate, (req, res) => {
     const { date } = req.params;
-    const { main_dish_id, side_dish_ids } = req.body;
+    const { main_dish_id, side_dish_ids, eating_out, eating_out_location } = req.body;
     db.get('SELECT id FROM meal_plan WHERE date = ?', [date], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         if (row) {
-            db.run('UPDATE meal_plan SET main_dish_id=?, side_dish_ids=? WHERE date=?',
-                [main_dish_id, side_dish_ids, date],
+            db.run('UPDATE meal_plan SET main_dish_id=?, side_dish_ids=?, eating_out=?, eating_out_location=? WHERE date=?',
+                [main_dish_id, side_dish_ids, eating_out ? 1 : 0, eating_out_location || null, date],
                 function (err) {
                     if (err) return res.status(500).json({ error: err.message });
                     res.json({ success: true, changes: this.changes });
                 }
             );
         } else {
-            db.run('INSERT INTO meal_plan (date, main_dish_id, side_dish_ids) VALUES (?, ?, ?)',
-                [date, main_dish_id, side_dish_ids],
+            db.run('INSERT INTO meal_plan (date, main_dish_id, side_dish_ids, eating_out, eating_out_location) VALUES (?, ?, ?, ?, ?)',
+                [date, main_dish_id, side_dish_ids, eating_out ? 1 : 0, eating_out_location || null],
                 function (err) {
                     if (err) return res.status(500).json({ error: err.message });
                     res.json({ success: true, id: this.lastID });

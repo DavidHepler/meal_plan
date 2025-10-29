@@ -123,9 +123,18 @@ function displayMealPlan() {
         dayCard.className = `plan-day-card ${isToday ? 'today' : ''}`;
         dayCard.dataset.date = day.date;
         const mainDishName = day.main_dish ? day.main_dish.name : '';
+        const eatingOut = day.eating_out ? true : false;
+        const eatingOutLocation = day.eating_out_location || '';
         dayCard.innerHTML = `
             <div class="plan-day-header">
                 <span class="plan-day-name">${formatDateWithDay(day.date)}</span>
+            </div>
+            <div class="eating-out-section">
+                <label class="eating-out-label">
+                    <input type="checkbox" class="eating-out-checkbox" data-date="${day.date}" ${eatingOut ? 'checked' : ''}>
+                    <span>Eating Out / Away</span>
+                </label>
+                <input type="text" class="eating-out-location" data-date="${day.date}" placeholder="Restaurant or location..." value="${escapeHtml(eatingOutLocation)}" ${!eatingOut ? 'disabled' : ''}>
             </div>
             <div class="meal-selector">
                 <label>Main Dish:</label>
@@ -147,6 +156,16 @@ function displayMealPlan() {
         mainInput.addEventListener('input', () => showMainDishDropdown(mainInput, mainDropdown));
         mainInput.addEventListener('blur', () => setTimeout(() => mainDropdown.classList.add('hidden'), 200));
         dayCard.querySelector('.add-side-dish-btn').addEventListener('click', () => addSideDishSelector(day.date));
+        
+        // Add event listener for eating out checkbox
+        const eatingOutCheckbox = dayCard.querySelector('.eating-out-checkbox');
+        const eatingOutLocationInput = dayCard.querySelector('.eating-out-location');
+        eatingOutCheckbox.addEventListener('change', () => {
+            eatingOutLocationInput.disabled = !eatingOutCheckbox.checked;
+            if (!eatingOutCheckbox.checked) {
+                eatingOutLocationInput.value = '';
+            }
+        });
     });
 }
 
@@ -229,10 +248,22 @@ async function saveMealPlan() {
         const sideTags = card.querySelectorAll('.side-dish-tag');
         const sideIds = Array.from(sideTags).map(tag => tag.dataset.sideId).filter(Boolean);
         const sideIdsString = sideIds.length > 0 ? sideIds.join(',') : '';
+        
+        // Get eating out fields
+        const eatingOutCheckbox = card.querySelector('.eating-out-checkbox');
+        const eatingOutLocationInput = card.querySelector('.eating-out-location');
+        const eatingOut = eatingOutCheckbox.checked;
+        const eatingOutLocation = eatingOut ? eatingOutLocationInput.value.trim() : '';
+        
         updates.push(fetch(`${API_BASE}/meal-plan/${date}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-            body: JSON.stringify({ main_dish_id: mainDishId, side_dish_ids: sideIdsString })
+            body: JSON.stringify({ 
+                main_dish_id: mainDishId, 
+                side_dish_ids: sideIdsString,
+                eating_out: eatingOut,
+                eating_out_location: eatingOutLocation
+            })
         }));
     }
     try {
