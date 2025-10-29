@@ -1,13 +1,14 @@
-# Eating Out / Away Feature
+# Eating Out / Other Feature
 
 ## Overview
 This feature allows you to indicate when you're eating out at a restaurant or at a friend's house instead of cooking at home. This helps you maintain a complete meal calendar even when you're not cooking.
 
 ## How It Works
 
-### Admin Panel
-When planning meals in the admin panel, each day now includes:
-- **Eating Out / Away checkbox**: Check this box when you won't be cooking at home
+### 🎯 How to Use
+
+1. **In the Admin Panel**: 
+   - Check the "Eating Out / Other" box for any day you're not cooking
 - **Location text field**: Enter where you'll be eating (restaurant name, "Friend's house", etc.)
   - This field is disabled unless the checkbox is checked
   - The location is optional but recommended for better tracking

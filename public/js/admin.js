@@ -132,7 +132,7 @@ function displayMealPlan() {
             <div class="eating-out-section">
                 <label class="eating-out-label">
                     <input type="checkbox" class="eating-out-checkbox" data-date="${day.date}" ${eatingOut ? 'checked' : ''}>
-                    <span>Eating Out / Away</span>
+                    <span>Eating Out / Other</span>
                 </label>
                 <input type="text" class="eating-out-location" data-date="${day.date}" placeholder="Restaurant or location..." value="${escapeHtml(eatingOutLocation)}" ${!eatingOut ? 'disabled' : ''}>
             </div>
