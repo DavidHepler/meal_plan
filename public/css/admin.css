@@ -369,13 +369,15 @@ body {
 
 .save-status {
     text-align: center;
-    margin-bottom: 20px;
-    padding: 12px 20px;
-    border-radius: 8px;
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: 6px;
     font-weight: 500;
-    font-size: 1em;
+    font-size: 0.95em;
     transition: all 0.3s ease;
-    min-height: 20px;
+    min-height: auto;
+    align-self: center;
+    white-space: nowrap;
 }
 
 .save-status.success {
