@@ -18,8 +18,9 @@ INSERT INTO main_dishes (name, nationality, main_component, base_component, reci
 ('BBQ Flammkuchen', 'French-American Fusion', 'Beef', '', ''),
 ('Creamy Garlic Parmesan Chicken', 'Italian-American', 'Chicken', 'None', ''),
 ('Fischfilet À la Bordelaise', 'French', 'Fish', 'None', ''),
-('Fleischpflanzerl', 'German', 'Beef', 'None', ''),
-('Gefüllte Paprika', 'German', 'Beef', 'None', ''),
+('Spaghetti Al Ragù', 'Italian', 'Ground Beef', 'Pasta', 'Paprika'),
+('Fleischpflanzerl', 'German', 'Ground Beef', 'None', ''),
+('Gefüllte Paprika', 'German', 'Ground Beef', 'None', ''),
 ('Broccoli-Cheese-Soup', 'American', 'Vegetarian', 'None', 'Paprika');
 
 -- Sample side dishes
