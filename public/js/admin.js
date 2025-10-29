@@ -129,13 +129,6 @@ function displayMealPlan() {
             <div class="plan-day-header">
                 <span class="plan-day-name">${formatDateWithDay(day.date)}</span>
             </div>
-            <div class="eating-out-section">
-                <label class="eating-out-label">
-                    <input type="checkbox" class="eating-out-checkbox" data-date="${day.date}" ${eatingOut ? 'checked' : ''}>
-                    <span>Eating Out / Other</span>
-                </label>
-                <input type="text" class="eating-out-location" data-date="${day.date}" placeholder="Restaurant or location..." value="${escapeHtml(eatingOutLocation)}" ${!eatingOut ? 'disabled' : ''}>
-            </div>
             <div class="meal-selector">
                 <label>Main Dish:</label>
                 <input type="text" class="main-dish-search-input" placeholder="Search or select main dish..." data-date="${day.date}" data-main-dish-id="${day.main_dish_id || ''}" value="${mainDishName}" autocomplete="off">
@@ -147,6 +140,13 @@ function displayMealPlan() {
                     ${displaySideDishesForPlan(day.side_dishes)}
                 </div>
                 <button class="btn btn-small btn-secondary add-side-dish-btn" data-date="${day.date}">+ Add Side</button>
+            </div>
+            <div class="eating-out-section">
+                <label class="eating-out-label">
+                    <input type="checkbox" class="eating-out-checkbox" data-date="${day.date}" ${eatingOut ? 'checked' : ''}>
+                    <span>Eating Out / Other</span>
+                </label>
+                <input type="text" class="eating-out-location" data-date="${day.date}" placeholder="Restaurant or location..." value="${escapeHtml(eatingOutLocation)}" ${!eatingOut ? 'disabled' : ''}>
             </div>
         `;
         mealPlanGrid.appendChild(dayCard);
