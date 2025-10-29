@@ -183,6 +183,16 @@ body {
     margin-bottom: 30px;
     flex-wrap: wrap;
     gap: 15px;
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-color);
+    z-index: 500;
+    padding: 20px 0;
+    margin-top: -20px;
+    margin-left: -40px;
+    margin-right: -40px;
+    padding-left: 40px;
+    padding-right: 40px;
 }
 
 .section-header h2 {
@@ -193,10 +203,6 @@ body {
 
 /* Sticky Save Button */
 #savePlanBtn {
-    position: -webkit-sticky; /* Safari */
-    position: sticky;
-    top: 20px; /* Stick near top */
-    z-index: 1001; /* Above autocomplete dropdown */
     box-shadow: 0 4px 12px var(--shadow);
     align-self: flex-start;
     margin-left: auto; /* Push to right side */
