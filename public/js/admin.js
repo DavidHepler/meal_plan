@@ -22,6 +22,11 @@ function setupEventListeners() {
     document.getElementById('addMainDishBtn').addEventListener('click', () => showMainDishForm());
     document.getElementById('cancelMainDishBtn').addEventListener('click', hideMainDishForm);
     document.getElementById('mainDishForm').addEventListener('submit', handleMainDishSubmit);
+    
+    // Event listeners for dynamic "Other" fields
+    document.getElementById('mainDishMainComponent').addEventListener('change', toggleCustomMainComponent);
+    document.getElementById('mainDishBaseComponent').addEventListener('change', toggleCustomBaseComponent);
+    
     document.getElementById('addSideDishBtn').addEventListener('click', () => showSideDishForm());
     document.getElementById('cancelSideDishBtn').addEventListener('click', hideSideDishForm);
     document.getElementById('sideDishForm').addEventListener('submit', handleSideDishSubmit);
@@ -280,22 +285,87 @@ async function saveMealPlan() {
     }
 }
 
+// Toggle custom main component field when "Other" is selected
+function toggleCustomMainComponent() {
+    const select = document.getElementById('mainDishMainComponent');
+    const customRow = document.getElementById('customMainComponentRow');
+    const customInput = document.getElementById('customMainComponent');
+    
+    if (select.value === 'Other') {
+        customRow.classList.remove('hidden');
+        customInput.focus();
+    } else {
+        customRow.classList.add('hidden');
+        customInput.value = '';
+    }
+}
+
+// Toggle custom base component field when "Other" or "Other Grain" is selected
+function toggleCustomBaseComponent() {
+    const select = document.getElementById('mainDishBaseComponent');
+    const customRow = document.getElementById('customBaseComponentRow');
+    const customInput = document.getElementById('customBaseComponent');
+    
+    if (select.value === 'Other' || select.value === 'Other Grain') {
+        customRow.classList.remove('hidden');
+        customInput.focus();
+    } else {
+        customRow.classList.add('hidden');
+        customInput.value = '';
+    }
+}
+
 function showMainDishForm(dish = null) {
     const formContainer = document.getElementById('mainDishFormContainer');
     const formTitle = document.getElementById('mainDishFormTitle');
     const form = document.getElementById('mainDishForm');
+    
+    // Define standard options for checking
+    const standardMainComponents = ['Fish', 'Chicken', 'Beef', 'Pork', 'Vegetarian'];
+    const standardBaseComponents = ['Rice', 'Pasta', 'Potato', 'None'];
+    
     if (dish) {
         formTitle.textContent = 'Edit Main Dish';
         document.getElementById('mainDishId').value = dish.id;
         document.getElementById('mainDishName').value = dish.name || '';
         document.getElementById('mainDishNationality').value = dish.nationality || '';
-        document.getElementById('mainDishMainComponent').value = dish.main_component || '';
-        document.getElementById('mainDishBaseComponent').value = dish.base_component || '';
+        
+        // Handle main component - check if it's a custom value
+        const mainComp = dish.main_component || '';
+        if (mainComp && !standardMainComponents.includes(mainComp)) {
+            document.getElementById('mainDishMainComponent').value = 'Other';
+            document.getElementById('customMainComponent').value = mainComp;
+            document.getElementById('customMainComponentRow').classList.remove('hidden');
+        } else {
+            document.getElementById('mainDishMainComponent').value = mainComp;
+            document.getElementById('customMainComponentRow').classList.add('hidden');
+            document.getElementById('customMainComponent').value = '';
+        }
+        
+        // Handle base component - check if it's a custom value
+        const baseComp = dish.base_component || '';
+        if (baseComp && !standardBaseComponents.includes(baseComp)) {
+            // Check if it might be "Other Grain" or just "Other"
+            if (baseComp.toLowerCase().includes('grain') || ['Quinoa', 'Couscous', 'Barley', 'Bulgur'].some(g => baseComp.toLowerCase().includes(g.toLowerCase()))) {
+                document.getElementById('mainDishBaseComponent').value = 'Other Grain';
+            } else {
+                document.getElementById('mainDishBaseComponent').value = 'Other';
+            }
+            document.getElementById('customBaseComponent').value = baseComp;
+            document.getElementById('customBaseComponentRow').classList.remove('hidden');
+        } else {
+            document.getElementById('mainDishBaseComponent').value = baseComp;
+            document.getElementById('customBaseComponentRow').classList.add('hidden');
+            document.getElementById('customBaseComponent').value = '';
+        }
+        
         document.getElementById('mainDishRecipeLocation').value = dish.recipe_location || '';
     } else {
         formTitle.textContent = 'Add New Main Dish';
         form.reset();
         document.getElementById('mainDishId').value = '';
+        document.getElementById('customMainComponentRow').classList.add('hidden');
+        document.getElementById('customBaseComponentRow').classList.add('hidden');
     }
     formContainer.classList.remove('hidden');
     document.getElementById('mainDishName').focus();
@@ -305,6 +375,11 @@ function hideMainDishForm() {
     document.getElementById('mainDishFormContainer').classList.add('hidden');
     document.getElementById('mainDishForm').reset();
     document.getElementById('mainDishFormStatus').textContent = '';
+    // Hide custom component rows
+    document.getElementById('customMainComponentRow').classList.add('hidden');
+    document.getElementById('customBaseComponentRow').classList.add('hidden');
+    document.getElementById('customMainComponent').value = '';
+    document.getElementById('customBaseComponent').value = '';
 }
 
 async function handleMainDishSubmit(e) {
@@ -312,11 +387,30 @@ async function handleMainDishSubmit(e) {
     const formStatus = document.getElementById('mainDishFormStatus');
     formStatus.textContent = 'Saving...';
     formStatus.className = 'form-status';
+    
+    // Get main component - use custom value if "Other" is selected
+    let mainComponent = document.getElementById('mainDishMainComponent').value;
+    if (mainComponent === 'Other') {
+        const customValue = document.getElementById('customMainComponent').value.trim();
+        if (customValue) {
+            mainComponent = customValue;
+        }
+    }
+    
+    // Get base component - use custom value if "Other" or "Other Grain" is selected
+    let baseComponent = document.getElementById('mainDishBaseComponent').value;
+    if (baseComponent === 'Other' || baseComponent === 'Other Grain') {
+        const customValue = document.getElementById('customBaseComponent').value.trim();
+        if (customValue) {
+            baseComponent = customValue;
+        }
+    }
+    
     const dishData = {
         name: document.getElementById('mainDishName').value,
         nationality: document.getElementById('mainDishNationality').value,
-        main_component: document.getElementById('mainDishMainComponent').value,
-        base_component: document.getElementById('mainDishBaseComponent').value,
+        main_component: mainComponent,
+        base_component: baseComponent,
         recipe_location: document.getElementById('mainDishRecipeLocation').value
     };
     try {

@@ -21,7 +21,10 @@ INSERT INTO main_dishes (name, nationality, main_component, base_component, reci
 ('Spaghetti Al Ragù', 'Italian', 'Ground Beef', 'Pasta', 'Paprika'),
 ('Fleischpflanzerl', 'German', 'Ground Beef', 'None', ''),
 ('Gefüllte Paprika', 'German', 'Ground Beef', 'None', ''),
-('Broccoli-Cheese-Soup', 'American', 'Vegetarian', 'None', 'Paprika');
+('Broccoli-Cheese-Soup', 'American', 'Vegetarian', 'None', 'Paprika'),
+('Rote-Beete-Knödel', 'German', 'Other', 'Other', 'Paprika'),
+('Mais-Pasta', 'Fusion', 'Pork', 'Pasta', 'Paprika'),
+('Couscous-Salat mit Bratwürsten', '', 'Pork', 'Couscous', '');
 
 -- Sample side dishes
 INSERT INTO side_dishes (name, type, notes) VALUES
