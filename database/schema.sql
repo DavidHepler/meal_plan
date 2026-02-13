@@ -74,13 +74,5 @@ BEGIN
     UPDATE meal_plan SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
--- Trigger to archive meal plan to history when updated or before deletion
-CREATE TRIGGER IF NOT EXISTS archive_to_history_on_update
-AFTER UPDATE OF main_dish_id ON meal_plan
-WHEN OLD.main_dish_id IS NOT NULL AND OLD.date < date('now')
-BEGIN
-    INSERT INTO meal_history (date, main_dish_id, main_dish_name, side_dish_ids, side_dish_names)
-    SELECT OLD.date, m.id, m.name, OLD.side_dish_ids, ''
-    FROM main_dishes m
-    WHERE m.id = OLD.main_dish_id;
-END;
+-- Note: Meal plan archiving to history is handled server-side (not via trigger)
+-- This ensures one entry per day, proper side dish name resolution, and no duplicates.

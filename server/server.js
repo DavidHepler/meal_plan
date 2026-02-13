@@ -318,12 +318,152 @@ function enrichMealPlanRow(row) {
     });
 }
 
-// MEAL HISTORY (last year)
+// ---- MEAL HISTORY ARCHIVING ----
+
+// Archive past meal plan entries to history (one entry per date, no duplicates)
+function archivePastMeals() {
+    const today = getDateString(new Date());
+    console.log(`[Archive] Running meal archival for dates before ${today}...`);
+
+    // Find meal_plan rows for past dates that have a main_dish and are NOT yet in history
+    const query = `
+        SELECT mp.date, mp.main_dish_id, mp.side_dish_ids, mp.eating_out, mp.eating_out_location
+        FROM meal_plan mp
+        WHERE mp.date < ?
+          AND (mp.main_dish_id IS NOT NULL OR mp.eating_out = 1)
+          AND mp.date NOT IN (SELECT date FROM meal_history)
+        ORDER BY mp.date
+    `;
+    db.all(query, [today], (err, rows) => {
+        if (err) {
+            console.error('[Archive] Error querying meal_plan:', err);
+            return;
+        }
+        if (!rows || rows.length === 0) {
+            console.log('[Archive] No new meals to archive.');
+            return;
+        }
+        console.log(`[Archive] Found ${rows.length} meal(s) to archive.`);
+        rows.forEach(row => archiveSingleMeal(row));
+    });
+}
+
+// Archive a single meal plan row to history
+function archiveSingleMeal(row) {
+    // Handle eating out entries
+    if (row.eating_out && !row.main_dish_id) {
+        const mainDishName = row.eating_out_location
+            ? `Eating Out - ${row.eating_out_location}`
+            : 'Eating Out';
+        db.run(
+            `INSERT INTO meal_history (date, main_dish_id, main_dish_name, side_dish_ids, side_dish_names)
+             VALUES (?, NULL, ?, NULL, NULL)`,
+            [row.date, mainDishName],
+            (err) => {
+                if (err) console.error(`[Archive] Error archiving eating-out ${row.date}:`, err);
+                else console.log(`[Archive] Archived eating-out for ${row.date}`);
+            }
+        );
+        return;
+    }
+
+    // Look up main dish name
+    db.get('SELECT name FROM main_dishes WHERE id = ?', [row.main_dish_id], (err, mainDish) => {
+        if (err) {
+            console.error(`[Archive] Error looking up main dish for ${row.date}:`, err);
+            return;
+        }
+        const mainDishName = mainDish ? mainDish.name : 'Unknown';
+
+        // Resolve side dish names
+        const sideIds = row.side_dish_ids
+            ? row.side_dish_ids.split(',').map(id => parseInt(id.trim())).filter(Boolean)
+            : [];
+
+        if (sideIds.length === 0) {
+            insertHistory(row.date, row.main_dish_id, mainDishName, row.side_dish_ids, '');
+        } else {
+            const placeholders = sideIds.map(() => '?').join(',');
+            db.all(`SELECT name FROM side_dishes WHERE id IN (${placeholders})`, sideIds, (err, sides) => {
+                const sideNames = (!err && sides) ? sides.map(s => s.name).join(', ') : '';
+                insertHistory(row.date, row.main_dish_id, mainDishName, row.side_dish_ids, sideNames);
+            });
+        }
+    });
+}
+
+function insertHistory(date, mainDishId, mainDishName, sideIds, sideNames) {
+    db.run(
+        `INSERT INTO meal_history (date, main_dish_id, main_dish_name, side_dish_ids, side_dish_names)
+         VALUES (?, ?, ?, ?, ?)`,
+        [date, mainDishId, mainDishName, sideIds, sideNames],
+        (err) => {
+            if (err) console.error(`[Archive] Error inserting history for ${date}:`, err);
+            else console.log(`[Archive] Archived meal for ${date}: ${mainDishName}`);
+        }
+    );
+}
+
+// Remove duplicate history entries (keep only the latest per date) and drop old trigger
+function cleanupHistoryDuplicates() {
+    console.log('[Cleanup] Removing duplicate history entries...');
+    db.run(
+        `DELETE FROM meal_history
+         WHERE id NOT IN (
+             SELECT MAX(id) FROM meal_history GROUP BY date
+         )`,
+        function (err) {
+            if (err) console.error('[Cleanup] Error removing duplicates:', err);
+            else console.log(`[Cleanup] Removed ${this.changes} duplicate history row(s).`);
+        }
+    );
+
+    // Drop the old trigger if it still exists
+    db.run('DROP TRIGGER IF EXISTS archive_to_history_on_update', (err) => {
+        if (err) console.error('[Cleanup] Error dropping old trigger:', err);
+        else console.log('[Cleanup] Old archive trigger removed (if it existed).');
+    });
+}
+
+// Schedule archival: run once at startup (after a short delay), then every 24 hours
+function scheduleArchival() {
+    // Wait 10 seconds after startup for DB to be ready, then run
+    setTimeout(() => {
+        cleanupHistoryDuplicates();
+        // Small delay to let cleanup finish before archiving new entries
+        setTimeout(() => archivePastMeals(), 3000);
+    }, 10000);
+
+    // Then run every 24 hours
+    setInterval(() => {
+        archivePastMeals();
+    }, 24 * 60 * 60 * 1000);
+}
+
+// MEAL HISTORY API
 app.get('/api/history', authenticate, (req, res) => {
-    const query = `SELECT * FROM meal_history WHERE date >= date('now', '-1 year') ORDER BY date DESC`;
-    db.all(query, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
+    // Run archival on-demand when history is viewed, to catch any stragglers
+    const today = getDateString(new Date());
+    const archiveQuery = `
+        SELECT mp.date, mp.main_dish_id, mp.side_dish_ids, mp.eating_out, mp.eating_out_location
+        FROM meal_plan mp
+        WHERE mp.date < ?
+          AND (mp.main_dish_id IS NOT NULL OR mp.eating_out = 1)
+          AND mp.date NOT IN (SELECT date FROM meal_history)
+        ORDER BY mp.date
+    `;
+    db.all(archiveQuery, [today], (err, rows) => {
+        if (!err && rows && rows.length > 0) {
+            rows.forEach(row => archiveSingleMeal(row));
+        }
+        // Short delay to let any inserts finish, then return history
+        setTimeout(() => {
+            const query = `SELECT * FROM meal_history WHERE date >= date('now', '-1 year') ORDER BY date DESC`;
+            db.all(query, [], (err, historyRows) => {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json(historyRows);
+            });
+        }, 500);
     });
 });
 
@@ -347,4 +487,5 @@ app.get('/api/health', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    scheduleArchival();
 });
