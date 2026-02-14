@@ -418,6 +418,72 @@ app.post('/api/auth/logout', authenticate, (req, res) => {
     );
 });
 
+// Change password endpoint
+app.post('/api/auth/change-password', authenticate, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const clientIp = getClientIp(req);
+    
+    // Validate input
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    
+    // Validate new password strength
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'New password must be at least 8 characters long' });
+    }
+    
+    // Get user's current password hash
+    db.get(
+        'SELECT id, username, password_hash FROM users WHERE id = ?',
+        [req.user.id],
+        async (err, user) => {
+            if (err) {
+                console.error('Database error during password change:', err);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            // Verify current password
+            const passwordMatch = await bcrypt.compare(currentPassword, user.password_hash);
+            
+            if (!passwordMatch) {
+                auditLog(req.user.id, 'PASSWORD_CHANGE_FAILED', 'auth', null, 'Incorrect current password', clientIp);
+                return res.status(401).json({ error: 'Current password is incorrect' });
+            }
+            
+            // Hash new password
+            const newPasswordHash = await bcrypt.hash(newPassword, 10);
+            
+            // Update password
+            db.run(
+                'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?',
+                [newPasswordHash, req.user.id],
+                function(err) {
+                    if (err) {
+                        console.error('Error updating password:', err);
+                        return res.status(500).json({ error: 'Internal server error' });
+                    }
+                    
+                    // Log success
+                    auditLog(req.user.id, 'PASSWORD_CHANGED', 'auth', null, 'Password changed successfully', clientIp);
+                    
+                    // Optionally revoke all other sessions (force re-login everywhere)
+                    // For now, we'll keep other sessions active
+                    
+                    res.json({ 
+                        success: true, 
+                        message: 'Password changed successfully' 
+                    });
+                }
+            );
+        }
+    );
+});
+
 // Legacy endpoint for backwards compatibility (will be removed)
 app.post('/api/auth', (req, res) => {
     res.status(410).json({ 

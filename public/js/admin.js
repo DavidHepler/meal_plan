@@ -30,6 +30,9 @@ function setupEventListeners() {
     document.getElementById('addSideDishBtn').addEventListener('click', () => showSideDishForm());
     document.getElementById('cancelSideDishBtn').addEventListener('click', hideSideDishForm);
     document.getElementById('sideDishForm').addEventListener('submit', handleSideDishSubmit);
+    
+    // Password change form
+    document.getElementById('changePasswordForm').addEventListener('submit', handlePasswordChange);
 }
 
 async function handleLogin(e) {
@@ -730,4 +733,82 @@ function isValidUrl(string) {
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
     return unsafe.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// Password change handler
+async function handlePasswordChange(e) {
+    e.preventDefault();
+    
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const statusEl = document.getElementById('passwordChangeStatus');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    // Clear previous status
+    statusEl.textContent = '';
+    statusEl.className = 'form-status';
+    
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+        statusEl.textContent = 'New passwords do not match';
+        statusEl.classList.add('error');
+        return;
+    }
+    
+    // Validate password length
+    if (newPassword.length < 8) {
+        statusEl.textContent = 'New password must be at least 8 characters long';
+        statusEl.classList.add('error');
+        return;
+    }
+    
+    // Disable button during request
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Changing Password...';
+    statusEl.textContent = 'Updating password...';
+    statusEl.classList.add('info');
+    
+    try {
+        const response = await fetch(`${API_BASE}/auth/change-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to change password');
+        }
+        
+        // Success
+        statusEl.textContent = '✓ Password changed successfully!';
+        statusEl.classList.remove('info', 'error');
+        statusEl.classList.add('success');
+        
+        // Clear form
+        document.getElementById('changePasswordForm').reset();
+        
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Change Password';
+        
+    } catch (error) {
+        statusEl.textContent = error.message;
+        statusEl.classList.remove('info', 'success');
+        statusEl.classList.add('error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Change Password';
+        
+        // If unauthorized, might need to re-login
+        if (error.message.includes('Unauthorized') || error.message.includes('401')) {
+            setTimeout(() => {
+                handleLogout();
+            }, 2000);
+        }
+    }
 }
