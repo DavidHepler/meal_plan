@@ -34,30 +34,61 @@ function setupEventListeners() {
 
 async function handleLogin(e) {
     e.preventDefault();
+    const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const loginError = document.getElementById('loginError');
+    const loginBtn = e.target.querySelector('button[type="submit"]');
+    
+    // Disable button during login
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
+    loginError.classList.add('hidden');
+    
     try {
-        const response = await fetch(`${API_BASE}/auth`, {
+        const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
+            body: JSON.stringify({ username, password })
         });
-        if (!response.ok) throw new Error('Invalid password');
+        
         const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Login failed');
+        }
+        
         authToken = data.token;
         localStorage.setItem('authToken', authToken);
+        localStorage.setItem('username', data.user.username);
         loginError.classList.add('hidden');
+        document.getElementById('password').value = '';
         showAdminDashboard();
     } catch (error) {
+        loginError.textContent = error.message;
         loginError.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
     }
 }
 
-function handleLogout() {
+async function handleLogout() {
+    // Call server to revoke session
+    try {
+        await fetch(`${API_BASE}/auth/logout`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+    } catch (error) {
+        console.error('Error logging out:', error);
+    }
+    
+    // Clear local data
     authToken = null;
     localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('username').value = '';
     document.getElementById('password').value = '';
 }
 

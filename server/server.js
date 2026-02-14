@@ -5,14 +5,101 @@ const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '8h';
+const INITIAL_USER_PASSWORD = process.env.INITIAL_USER_PASSWORD || 'changeMe123!';
 const DB_PATH = path.join(__dirname, 'database/meals.db');
+
+// Warn if using default JWT secret in production
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️  WARNING: Using randomly generated JWT_SECRET. Set JWT_SECRET environment variable in production!');
+}
 
 app.use(cors());
 app.use(express.json());
+
+// Security headers middleware
+app.use((req, res, next) => {
+    // Content Security Policy - prevents XSS attacks
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+    );
+    
+    // Prevent MIME-sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
+    // Enable XSS filter in older browsers
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Force HTTPS in production (HSTS)
+    if (process.env.NODE_ENV === 'production') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    
+    next();
+});
+
+// X-Frame-Options only for admin routes to prevent clickjacking on admin panel
+app.use('/api/auth', (req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    next();
+});
+
+app.use('/api/main-dishes', (req, res, next) => {
+    if (req.method !== 'GET') {
+        res.setHeader('X-Frame-Options', 'DENY');
+    }
+    next();
+});
+
+app.use('/api/side-dishes', (req, res, next) => {
+    if (req.method !== 'GET') {
+        res.setHeader('X-Frame-Options', 'DENY');
+    }
+    next();
+});
+
+app.use('/api/meal-plan', (req, res, next) => {
+    if (req.method !== 'GET' || req.path.includes('/admin')) {
+        res.setHeader('X-Frame-Options', 'DENY');
+    }
+    next();
+});
+
+app.use('/api/history', (req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    next();
+});
+
+// Rate limiter for login attempts (5 attempts per 15 minutes per IP)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 requests per window
+    message: { error: 'Too many login attempts, please try again after 15 minutes' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Skip successful logins from counting
+    skipSuccessfulRequests: true
+});
+
+// General API rate limiter (100 requests per 15 minutes per IP)
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+app.use('/api/', apiLimiter);
 
 // Utility: get YYYY-MM-DD string
 function getDateString(date) {
@@ -36,6 +123,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 function initializeDatabase() {
     const schemaPath = path.join(__dirname, 'database/schema.sql');
     const seedPath = path.join(__dirname, 'database/seed.sql');
+    const userMigrationPath = path.join(__dirname, 'database/migrate_add_users.sql');
     
     // Check if tables exist
     db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='main_dishes'", (err, row) => {
@@ -59,33 +147,282 @@ function initializeDatabase() {
                             console.error('Error loading seed data:', err);
                         } else {
                             console.log('Seed data loaded successfully');
+                            runUserMigration();
                         }
                     });
                 }
             });
         } else {
             console.log('Database already initialized');
+            runUserMigration();
         }
+    });
+    
+    function runUserMigration() {
+        // Check if users table exists
+        db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'", (err, row) => {
+            if (err) {
+                console.error('Error checking users table:', err);
+                return;
+            }
+            
+            if (!row && fs.existsSync(userMigrationPath)) {
+                console.log('Running user authentication migration...');
+                const migration = fs.readFileSync(userMigrationPath, 'utf8');
+                db.exec(migration, (err) => {
+                    if (err) {
+                        console.error('Error running user migration:', err);
+                    } else {
+                        console.log('User authentication tables created successfully');
+                        createInitialUser();
+                    }
+                });
+            } else if (row) {
+                console.log('User authentication already configured');
+                // Check if initial user exists
+                db.get("SELECT id FROM users WHERE username = 'kat'", (err, user) => {
+                    if (!err && !user) {
+                        createInitialUser();
+                    }
+                });
+            }
+        });
+    }
+    
+    function createInitialUser() {
+        console.log('Creating initial user "kat"...');
+        const passwordHash = bcrypt.hashSync(INITIAL_USER_PASSWORD, 10);
+        db.run(
+            'INSERT INTO users (username, password_hash, display_name, is_active) VALUES (?, ?, ?, 1)',
+            ['kat', passwordHash, 'Kat'],
+            function(err) {
+                if (err) {
+                    console.error('Error creating initial user:', err);
+                } else {
+                    console.log(`✅ Initial user "kat" created successfully`);
+                    console.log(`⚠️  Default password: ${INITIAL_USER_PASSWORD}`);
+                    console.log('🔒 Please change this password immediately!');
+                }
+            }
+        );
+    }
+}
+
+// Helper: Get client IP address
+function getClientIp(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+           req.headers['x-real-ip'] || 
+           req.connection.remoteAddress || 
+           req.socket.remoteAddress || 
+           'unknown';
+}
+
+// Helper: Hash token for session storage
+function hashToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// Helper: Log login attempt
+function logLoginAttempt(username, ip, success) {
+    db.run(
+        'INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)',
+        [username, ip, success ? 1 : 0],
+        (err) => {
+            if (err) console.error('Error logging login attempt:', err);
+        }
+    );
+}
+
+// Helper: Check recent failed login attempts
+function checkLoginAttempts(username, ip, callback) {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    
+    // Check both username and IP-based attempts
+    db.all(
+        `SELECT COUNT(*) as count FROM login_attempts 
+         WHERE (username = ? OR ip_address = ?) 
+         AND success = 0 
+         AND attempted_at > ?
+         GROUP BY CASE WHEN username = ? THEN 'user' ELSE 'ip' END`,
+        [username, ip, fifteenMinutesAgo, username],
+        (err, rows) => {
+            if (err) return callback(err);
+            
+            // If more than 5 failed attempts from this username or IP
+            const maxAttempts = rows && rows.length > 0 ? Math.max(...rows.map(r => r.count)) : 0;
+            callback(null, maxAttempts >= 5);
+        }
+    );
+}
+
+// Helper: Audit log
+function auditLog(userId, action, resource, resourceId, details, ip) {
+    db.run(
+        'INSERT INTO audit_log (user_id, action, resource, resource_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)',
+        [userId, action, resource, resourceId, details, ip],
+        (err) => {
+            if (err) console.error('Error writing audit log:', err);
+        }
+    );
+}
+
+// Auth middleware with JWT validation
+function authenticate(req, res, next) {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized - No token provided' });
+    }
+    
+    const token = authHeader.substring(7);
+    const tokenHash = hashToken(token);
+    
+    // Verify JWT token
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ error: 'Unauthorized - Invalid token' });
+        }
+        
+        // Check if session exists and is not revoked
+        db.get(
+            'SELECT s.*, u.username, u.is_active FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token_hash = ? AND s.revoked = 0 AND s.expires_at > datetime("now")',
+            [tokenHash],
+            (err, session) => {
+                if (err || !session || !session.is_active) {
+                    return res.status(401).json({ error: 'Unauthorized - Session invalid' });
+                }
+                
+                // Attach user info to request
+                req.user = {
+                    id: decoded.userId,
+                    username: session.username
+                };
+                next();
+            }
+        );
     });
 }
 
-// Auth middleware
-function authenticate(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
+// Auth endpoint - Login with username and password
+app.post('/api/auth/login', loginLimiter, (req, res) => {
+    const { username, password } = req.body;
+    const clientIp = getClientIp(req);
+    
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password required' });
     }
-    next();
-}
+    
+    // Check if too many failed attempts
+    checkLoginAttempts(username, clientIp, (err, locked) => {
+        if (err) {
+            console.error('Error checking login attempts:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+        
+        if (locked) {
+            logLoginAttempt(username, clientIp, false);
+            return res.status(429).json({ 
+                error: 'Too many failed login attempts. Account locked for 15 minutes.' 
+            });
+        }
+        
+        // Find user
+        db.get(
+            'SELECT id, username, password_hash, display_name, is_active FROM users WHERE username = ?',
+            [username],
+            async (err, user) => {
+                if (err) {
+                    console.error('Database error during login:', err);
+                    return res.status(500).json({ error: 'Internal server error' });
+                }
+                
+                // Check if user exists and is active
+                if (!user || !user.is_active) {
+                    logLoginAttempt(username, clientIp, false);
+                    return res.status(401).json({ error: 'Invalid username or password' });
+                }
+                
+                // Verify password
+                const passwordMatch = await bcrypt.compare(password, user.password_hash);
+                
+                if (!passwordMatch) {
+                    logLoginAttempt(username, clientIp, false);
+                    return res.status(401).json({ error: 'Invalid username or password' });
+                }
+                
+                // Generate JWT token
+                const token = jwt.sign(
+                    { userId: user.id, username: user.username },
+                    JWT_SECRET,
+                    { expiresIn: JWT_EXPIRATION }
+                );
+                
+                const tokenHash = hashToken(token);
+                const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(); // 8 hours
+                
+                // Store session
+                db.run(
+                    'INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+                    [user.id, tokenHash, expiresAt],
+                    function(err) {
+                        if (err) {
+                            console.error('Error creating session:', err);
+                            return res.status(500).json({ error: 'Internal server error' });
+                        }
+                        
+                        // Update last login
+                        db.run('UPDATE users SET last_login = datetime("now") WHERE id = ?', [user.id]);
+                        
+                        // Log successful attempt
+                        logLoginAttempt(username, clientIp, true);
+                        auditLog(user.id, 'LOGIN', 'auth', null, 'Successful login', clientIp);
+                        
+                        // Clean up old expired sessions
+                        db.run('DELETE FROM sessions WHERE expires_at < datetime("now") OR revoked = 1');
+                        
+                        res.json({
+                            success: true,
+                            token: token,
+                            user: {
+                                username: user.username,
+                                displayName: user.display_name
+                            },
+                            expiresIn: JWT_EXPIRATION
+                        });
+                    }
+                );
+            }
+        );
+    });
+});
 
-// Auth endpoint
+// Logout endpoint - Revoke session
+app.post('/api/auth/logout', authenticate, (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader.substring(7);
+    const tokenHash = hashToken(token);
+    const clientIp = getClientIp(req);
+    
+    db.run(
+        'UPDATE sessions SET revoked = 1 WHERE token_hash = ?',
+        [tokenHash],
+        function(err) {
+            if (err) {
+                console.error('Error revoking session:', err);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            
+            auditLog(req.user.id, 'LOGOUT', 'auth', null, 'User logged out', clientIp);
+            res.json({ success: true, message: 'Logged out successfully' });
+        }
+    );
+});
+
+// Legacy endpoint for backwards compatibility (will be removed)
 app.post('/api/auth', (req, res) => {
-    const { password } = req.body;
-    if (password === ADMIN_PASSWORD) {
-        res.json({ success: true, token: ADMIN_PASSWORD });
-    } else {
-        res.status(401).json({ error: 'Invalid password' });
-    }
+    res.status(410).json({ 
+        error: 'This endpoint is deprecated. Please use /api/auth/login with username and password.' 
+    });
 });
 
 // MAIN DISHES CRUD

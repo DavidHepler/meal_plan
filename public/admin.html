@@ -12,9 +12,10 @@
         <div class="login-box">
             <h1>🍽️ Meal Plan Admin</h1>
             <form id="loginForm">
-                <input type="password" id="password" placeholder="Enter password" required>
+                <input type="text" id="username" placeholder="Username" required autocomplete="username">
+                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
                 <button type="submit" class="btn btn-primary">Login</button>
-                <p id="loginError" class="error hidden">Invalid password</p>
+                <p id="loginError" class="error hidden">Invalid credentials</p>
             </form>
         </div>
     </div>
