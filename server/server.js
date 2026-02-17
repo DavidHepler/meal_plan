@@ -17,6 +17,9 @@ const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '8h';
 const INITIAL_USER_PASSWORD = process.env.INITIAL_USER_PASSWORD || 'changeMe123!';
 const DB_PATH = path.join(__dirname, 'database/meals.db');
 
+// Trust proxy - needed when behind nginx/reverse proxy
+app.set('trust proxy', 1);
+
 // Warn if using default JWT secret in production
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     console.warn('⚠️  WARNING: Using randomly generated JWT_SECRET. Set JWT_SECRET environment variable in production!');
