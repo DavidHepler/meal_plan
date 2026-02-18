@@ -20,6 +20,9 @@ const DB_PATH = path.join(__dirname, 'database/meals.db');
 // Trust proxy - needed when behind nginx/reverse proxy
 app.set('trust proxy', 1);
 
+// Disable X-Powered-By header to prevent information leakage
+app.disable('x-powered-by');
+
 // Warn if using default JWT secret in production
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     console.warn('⚠️  WARNING: Using randomly generated JWT_SECRET. Set JWT_SECRET environment variable in production!');
@@ -42,10 +45,8 @@ app.use((req, res, next) => {
     // Enable XSS filter in older browsers
     res.setHeader('X-XSS-Protection', '1; mode=block');
     
-    // Force HTTPS in production (HSTS)
-    if (process.env.NODE_ENV === 'production') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    }
+    // Force HTTPS (HSTS) - always set since we're behind nginx with SSL
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     
     next();
 });
