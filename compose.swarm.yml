@@ -1,0 +1,100 @@
+---
+# ===================================================================
+# Meal Plan - Docker Swarm Stack
+# ===================================================================
+# Deploy:  docker stack deploy -c compose.swarm.yml meal-plan
+# Remove:  docker stack rm meal-plan
+#
+# Prerequisites:
+#   - Overlay network 'proxy' exists
+#   - NFS exports:
+#       10.0.0.250:/docker/meal-plan/data
+#       10.0.0.250:/docker/meal-plan/uploads
+#   - Images built and pushed to registry:
+#
+#       cd /home/hep-admin/docker-compose/meal_plan
+#       docker build -t 127.0.0.1:5000/meal-plan-web:latest -f Dockerfile .
+#       docker push 127.0.0.1:5000/meal-plan-web:latest
+#       docker build -t 127.0.0.1:5000/meal-plan-server:latest -f server/Dockerfile .
+#       docker push 127.0.0.1:5000/meal-plan-server:latest
+#
+# Customize:
+#   - Replace 'example.com' with your domain
+#   - Set strong JWT_SECRET and INITIAL_USER_PASSWORD values
+#
+# Note: The web nginx proxies /api/ to http://server:3000, which
+#       resolves via the internal overlay network.
+# ===================================================================
+
+services:
+  server:
+    image: 127.0.0.1:5000/meal-plan-server:latest
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=CHANGE_ME_USE_STRONG_RANDOM_STRING
+      - JWT_EXPIRATION=8h
+      - INITIAL_USER_PASSWORD=CHANGE_ME
+      - TZ=America/Chicago
+    volumes:
+      - meal_data:/app/database
+      - meal_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+
+  web:
+    image: 127.0.0.1:5000/meal-plan-web:latest
+    networks:
+      - internal
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.meal-plan.rule=Host(`meals.example.com`)"
+        - "traefik.http.routers.meal-plan.entrypoints=websecure"
+        - "traefik.http.routers.meal-plan.tls.certresolver=cloudflare"
+        - "traefik.http.services.meal-plan.loadbalancer.server.port=80"
+
+networks:
+  internal:
+    driver: overlay
+  proxy:
+    external: true
+
+volumes:
+  meal_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=10.0.0.250,nfsvers=4,rw,nolock,soft
+      device: ":/docker/meal-plan/data"
+  meal_uploads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=10.0.0.250,nfsvers=4,rw,nolock,soft
+      device: ":/docker/meal-plan/uploads"
